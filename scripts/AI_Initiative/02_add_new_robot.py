@@ -2,7 +2,12 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
+"""
 
+    # Usage
+    ./isaaclab.sh -p scripts/AI_Initiative/02_add_new_robot.py
+
+"""
 import argparse
 
 from isaaclab.app import AppLauncher
@@ -27,7 +32,7 @@ import torch
 import isaaclab.sim as sim_utils
 from isaaclab.sim import UsdFileCfg
 from isaaclab.actuators import ImplicitActuatorCfg
-from isaaclab.assets import AssetBaseCfg
+from isaaclab.assets import AssetBaseCfg, RigidObject, RigidObjectCfg
 from isaaclab.assets.articulation import ArticulationCfg
 from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
@@ -100,11 +105,11 @@ class NewRobotsSceneCfg(InteractiveSceneCfg):
         prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=3000.0, color=(0.75, 0.75, 0.75))
     )
     
-    table_01 = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/Table_01", spawn=UsdFileCfg(usd_path=assets_folder + "table.usd"))
-    table_02 = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/Table_02", spawn=UsdFileCfg(usd_path=assets_folder + "table.usd"))
+    table_01 = RigidObjectCfg(prim_path="{ENV_REGEX_NS}/Table_01", spawn=UsdFileCfg(usd_path=assets_folder + "table.usd"))
+    table_02 = RigidObjectCfg(prim_path="{ENV_REGEX_NS}/Table_02", spawn=UsdFileCfg(usd_path=assets_folder + "table.usd"))
     table_02.init_state.pos = (0.82, 0.0, 0.0)
 
-    main_shell = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/flashlight_main_shell",
+    main_shell = RigidObjectCfg(prim_path="{ENV_REGEX_NS}/flashlight_main_shell",
                               spawn=UsdFileCfg(usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell.usd"))
     main_shell.init_state.pos = (0.0, 0.3, 0.83)
 

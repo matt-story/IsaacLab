@@ -8,7 +8,7 @@
 .. code-block:: bash
 
     # Usage
-    ./isaaclab.sh -p scripts/AI_Initiative/tutorial_interactive_scene.py
+    ./isaaclab.sh -p scripts/AI_Initiative/03_tutorial_interactive_scene.py
 
 """
 

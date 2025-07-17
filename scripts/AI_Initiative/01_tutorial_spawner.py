@@ -8,7 +8,7 @@
 .. code-block:: bash
 
     # Usage
-    ./isaaclab.sh -p scripts/AI_Initiative/tutorial_spawner.py
+    ./isaaclab.sh -p scripts/AI_Initiative/01_tutorial_spawner.py
 
 """
 

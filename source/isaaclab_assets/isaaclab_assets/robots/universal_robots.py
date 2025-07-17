@@ -44,11 +44,63 @@ UR10_CFG = ArticulationCfg(
     actuators={
         "arm": ImplicitActuatorCfg(
             joint_names_expr=[".*"],
-            velocity_limit=100.0,
-            effort_limit=87.0,
+            velocity_limit_sim=100.0,
+            effort_limit_sim=87.0,
             stiffness=800.0,
             damping=40.0,
         ),
     },
 )
 """Configuration of UR-10 arm using implicit actuator models."""
+
+UR10e_CFG = ArticulationCfg(
+    spawn=sim_utils.UsdFileCfg(
+        usd_path="/home/matthewstory/Desktop/FAIR_RL_Stage/Collected_UR_flashlight_assembly/ur10e_w_Robotiq_2F_85.usd",
+        rigid_props=sim_utils.RigidBodyPropertiesCfg(
+            disable_gravity=False,
+            max_depenetration_velocity=5.0,
+        ),
+        activate_contact_sensors=False,
+    ),
+    init_state=ArticulationCfg.InitialStateCfg(
+        joint_pos={
+            "shoulder_pan_joint": 0.0,
+            "shoulder_lift_joint": -1.712,
+            "elbow_joint": 1.712,
+            "wrist_1_joint": 0.0,
+            "wrist_2_joint": 0.0,
+            "wrist_3_joint": 0.0,
+            "finger_joint": 0.0,
+        },
+    ),
+    actuators={
+        "shoulder": ImplicitActuatorCfg(
+            joint_names_expr=["shoulder_pan_joint", "shoulder_lift_joint"],
+            velocity_limit_sim=120.0,
+            effort_limit_sim=330.0,
+            stiffness=3271.4917,
+            damping=13.08597,
+        ),
+        "elbow": ImplicitActuatorCfg(
+            joint_names_expr=["elbow_joint"],
+            velocity_limit_sim=180.0,
+            effort_limit_sim=87.0,
+            stiffness=3271.4917,
+            damping=13.08597,
+        ),
+        "wrist": ImplicitActuatorCfg(
+            joint_names_expr=["wrist_1_joint", "wrist_2_joint", "wrist_3_joint"],
+            velocity_limit_sim=180.0,
+            effort_limit_sim=87.0,
+            stiffness=1268.18604,
+            damping=5.07,
+        ),
+        "finger": ImplicitActuatorCfg(
+            joint_names_expr=["finger_joint"],
+            velocity_limit_sim=130.0,
+            effort_limit_sim=16.5,
+            stiffness=0.17,
+            damping=0.0002,
+        ),
+    },
+)

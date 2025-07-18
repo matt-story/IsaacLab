@@ -8,7 +8,7 @@
 .. code-block:: bash
 
     # Usage
-    ./isaaclab.sh -p scripts/AI_Initiative/03_tutorial_interactive_scene.py
+    ./isaaclab.sh -p scripts/AI_Initiative/05_create_scene.py --num_envs 32
 
 """
 
@@ -32,37 +32,33 @@ app_launcher = AppLauncher(args_cli)
 simulation_app = app_launcher.app
 
 """Rest everything follows."""
-import numpy as np
+
 import torch
 
-import isaacsim.core.utils.prims as prim_utils
 import isaaclab.sim as sim_utils
-from isaaclab.assets import ArticulationCfg, AssetBaseCfg, Articulation, RigidObject, RigidObjectCfg
+from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
 from isaaclab.sim import SimulationContext, UsdFileCfg
 from isaaclab.utils import configclass
-from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import UR10e_CFG  # isort:skip
+from isaaclab_assets import UR10e_CFG # isort:skip
 
 assets_folder = "/home/matthewstory/Desktop/FAIR_RL_Stage/"
 
-class TutorialInteractiveSceneCfg(InteractiveSceneCfg):
+@configclass
+class UR10eSceneCfg(InteractiveSceneCfg):
+    """Configuration for a UR10e scene."""
 
-    """Designs the scene."""
-    # Ground-plane
-    ground = AssetBaseCfg(prim_path="/World/ground_plane", spawn=sim_utils.GroundPlaneCfg())
+    # ground plane
+    ground = AssetBaseCfg(prim_path="/World/defaultGroundPlane", spawn=sim_utils.GroundPlaneCfg())
 
-    # Lights
+    # lights
     dome_light = AssetBaseCfg(
         prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=3000.0, color=(0.75, 0.75, 0.75))
     )
-
-    # create a new xform prim for all objects to be spawned under
-    prim_utils.create_prim("/World/Objects", "Xform")
 
     table_01 = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/Table_01", spawn=UsdFileCfg(usd_path=assets_folder + "table.usd"))
     table_02 = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/Table_02", spawn=UsdFileCfg(usd_path=assets_folder + "table.usd"))
@@ -76,56 +72,79 @@ class TutorialInteractiveSceneCfg(InteractiveSceneCfg):
                                 spawn=UsdFileCfg(usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_kitting_tray.usd"))
     kitting_tray.init_state.pos = (0.8, 0.3, 0.83)
 
-    ur10e = UR10e_CFG.replace(prim_path="{ENV_REGEX_NS}/ur10e")
+    ur10e: ArticulationCfg = UR10e_CFG.replace(prim_path="{ENV_REGEX_NS}/ur10e")
     ur10e.init_state.pos = (0.3, -0.4, 0.83)
+    ur10e.init_state.joint_pos = {
+        "shoulder_pan_joint": 0.0,
+        "shoulder_lift_joint": -1.712,
+        "elbow_joint": 1.712,
+        "wrist_1_joint": 0.0,
+        "wrist_2_joint": 0.0,
+        "wrist_3_joint": 0.0,
+    }
 
-def run_simulator(sim: SimulationContext, scene: InteractiveScene):
+def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
+    """Runs the simulation loop."""
+    # Extract scene entities
+    # note: we only do this here for readability.
+    robot = scene["ur10e"]
+    # Define simulation stepping
     sim_dt = sim.get_physics_dt()
-    sim_time = 0.0
     count = 0
-
+    # Simulation loop
     while simulation_app.is_running():
+        # Reset
         if count % 500 == 0:
+            # reset counter
             count = 0
-            root_ur_state = scene["ur10e"].data.default_root_state.clone()
-            root_ur_state[:, :3] += scene.env_origins
-
-            scene["ur10e"].write_root_pose_to_sim(root_ur_state[:, :7])
-            scene["ur10e"].write_root_velocity_to_sim(root_ur_state[:, 7:])
-
-            joint_pos, joint_vel = (
-                scene["ur10e"].data.default_joint_pos.clone(),
-                scene["ur10e"].data.default_joint_vel.clone(),
-            )
-            scene["ur10e"].write_joint_state_to_sim(joint_pos, joint_vel)
+            # reset the scene entities
+            # root state
+            # we offset the root state by the origin since the states are written in simulation world frame
+            # if this is not done, then the robots will be spawned at the (0, 0, 0) of the simulation world
+            root_state = robot.data.default_root_state.clone()
+            root_state[:, :3] += scene.env_origins
+            robot.write_root_pose_to_sim(root_state[:, :7])
+            robot.write_root_velocity_to_sim(root_state[:, 7:])
+            # set joint positions with some noise
+            joint_pos, joint_vel = robot.data.default_joint_pos.clone(), robot.data.default_joint_vel.clone()
+            joint_pos += torch.rand_like(joint_pos) * 0.1
+            robot.write_joint_state_to_sim(joint_pos, joint_vel)
             # clear internal buffers
             scene.reset()
-            print("[INFO]: Resetting UR10e state...")
-
-        wave_action = scene["ur10e"].data.default_joint_pos
-        wave_action[:, 0:4] = 0,25 * np.sin(2* np.pi * 0.5 * sim_time)
-        scene["ur10e"].set_joint_position_target(wave_action)
-
+            print("[INFO]: Resetting robot state...")
+        # Apply random action
+        # generate random joint positions
+            joint_pos_target = robot.data.default_joint_pos + torch.randn_like(robot.data.joint_pos) * 0.1
+            joint_pos_target = joint_pos_target.clamp_(
+                robot.data.soft_joint_pos_limits[..., 0], robot.data.soft_joint_pos_limits[..., 1]
+            )
+            # apply action to the robot
+            robot.set_joint_position_target(joint_pos_target)
+        # -- write data to sim
         scene.write_data_to_sim()
+        # Perform step
         sim.step()
-        sim_time += sim_dt
+        # Increment counter
         count += 1
+        # Update buffers
         scene.update(sim_dt)
+
 
 def main():
     """Main function."""
     # Load kit helper
     sim_cfg = sim_utils.SimulationCfg(device=args_cli.device)
-    sim = sim_utils.SimulationContext(sim_cfg)
-    
+    sim = SimulationContext(sim_cfg)
     # Set main camera
-    sim.set_camera_view([2.5, 0.0, 2.5], [-0.5, 0.0, 0.5])
-
-    scene_cfg = TutorialInteractiveSceneCfg(args_cli.num_envs, env_spacing=2.0)
+    sim.set_camera_view([2.5, 0.0, 4.0], [0.0, 0.0, 2.0])
+    # Design scene
+    scene_cfg = UR10eSceneCfg(num_envs=args_cli.num_envs, env_spacing=3.0)
     scene = InteractiveScene(scene_cfg)
+    # Play the simulator
     sim.reset()
+    # Now we are ready!
     print("[INFO]: Setup complete...")
-
+    # Run the simulator
     run_simulator(sim, scene)
 
 

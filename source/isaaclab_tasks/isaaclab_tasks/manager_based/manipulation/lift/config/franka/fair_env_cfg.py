@@ -12,7 +12,7 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from isaaclab_tasks.manager_based.manipulation.lift import mdp
-from isaaclab_tasks.manager_based.manipulation.lift.lift_env_cfg import LiftEnvCfg
+from isaaclab_tasks.manager_based.FAIR.fair_env_cfg import FAIREnvCfg
 
 ##
 # Pre-defined configs
@@ -22,7 +22,7 @@ from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG  # isort: skip
 
 
 @configclass
-class FrankaCubeLiftEnvCfg(LiftEnvCfg):
+class FrankaCubeLiftEnvCfg(FAIREnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()

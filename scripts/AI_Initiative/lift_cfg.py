@@ -21,7 +21,7 @@ from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdF
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
-from . import mdp
+from isaaclab_tasks.manager_based.manipulation.lift import mdp
 
 ##
 # Scene definition
@@ -42,25 +42,32 @@ class ObjectTableSceneCfg(InteractiveSceneCfg):
     # target object: will be populated by agent env cfg
     object: RigidObjectCfg | DeformableObjectCfg = MISSING
 
-    # Table
-    table = AssetBaseCfg(
-        prim_path="{ENV_REGEX_NS}/Table",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=[0, 0, 0.79], rot=[0, 0, 0, 0]),
-        spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/ThorLabsTable/table_instanceable.usd"),
-    )
-
-    # plane
-    plane = AssetBaseCfg(
-        prim_path="/World/GroundPlane",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=[0, 0, -1.05]),
-        spawn=GroundPlaneCfg(),
+    # ground plane
+    ground = AssetBaseCfg(
+        prim_path="/World/defaultGroundPlane",
+        spawn=sim_utils.GroundPlaneCfg(),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, -0.83)),
     )
 
     # lights
-    light = AssetBaseCfg(
-        prim_path="/World/light",
-        spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
+    dome_light = AssetBaseCfg(
+        prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=3000.0, color=(0.75, 0.75, 0.75))
     )
+    
+    assets_folder = "/home/matthewstory/Desktop/FAIR_RL_Stage/"
+    
+    table_01 = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/Table_01", spawn=UsdFileCfg(usd_path=assets_folder + "table.usd"))
+    table_02 = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/Table_02", spawn=UsdFileCfg(usd_path=assets_folder + "table.usd"))
+    table_01.init_state.pos = (-0.3, 0.4, -0.83)
+    table_02.init_state.pos = (0.52, 0.4, -0.83)
+
+    main_shell = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/flashlight_main_shell",
+                              spawn=UsdFileCfg(usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell.usd"))
+    main_shell.init_state.pos = (-0.3, 0.7, 0.0)
+
+    kitting_tray = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/flashlight_kitting_tray",
+                                spawn=UsdFileCfg(usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_kitting_tray.usd"))
+    kitting_tray.init_state.pos = (0.5, 0.7, 0.0)
 
 
 ##

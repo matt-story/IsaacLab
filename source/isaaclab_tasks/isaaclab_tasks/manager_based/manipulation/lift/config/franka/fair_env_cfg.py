@@ -2,6 +2,7 @@
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
+import numpy as np
 
 from isaaclab.assets import RigidObjectCfg
 from isaaclab.sensors import FrameTransformerCfg
@@ -14,12 +15,15 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab_tasks.manager_based.manipulation.lift import mdp
 from isaaclab_tasks.manager_based.FAIR.fair_env_cfg import FAIREnvCfg
 
+from isaacsim.core.utils.rotations import euler_angles_to_quat
+
 ##
 # Pre-defined configs
 ##
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
 from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG  # isort: skip
 
+assets_folder = "/home/matthewstory/Desktop/FAIR_RL_Stage/"
 
 @configclass
 class FrankaCubeLiftEnvCfg(FAIREnvCfg):
@@ -43,13 +47,15 @@ class FrankaCubeLiftEnvCfg(FAIREnvCfg):
         # Set the body name for the end effector
         self.commands.object_pose.body_name = "panda_hand"
 
+        rotation = euler_angles_to_quat(np.array([0.0, 0.0, -np.pi/2]))
         # Set Cube as object
         self.scene.object = RigidObjectCfg(
-            prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.5, 0, 0.055], rot=[1, 0, 0, 0]),
+            prim_path="{ENV_REGEX_NS}/Main_shell",
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.27, 0.06], 
+                                                      rot=rotation),
             spawn=UsdFileCfg(
-                usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd",
-                scale=(0.8, 0.8, 0.8),
+                usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell.usd",
+                scale=(0.001, 0.001, 0.001),
                 rigid_props=RigidBodyPropertiesCfg(
                     solver_position_iteration_count=16,
                     solver_velocity_iteration_count=1,

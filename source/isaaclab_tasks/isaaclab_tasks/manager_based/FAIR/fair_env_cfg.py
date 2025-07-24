@@ -52,6 +52,7 @@ from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.utils import configclass
+from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, DeformableObjectCfg, RigidObjectCfg
 from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
 from isaaclab.sim import SimulationContext, UsdFileCfg
@@ -87,32 +88,19 @@ class FAIRSceneCfg(InteractiveSceneCfg):
         prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=3000.0, color=(0.75, 0.75, 0.75))
     )
 
-    table_01 = AssetBaseCfg(
-                            prim_path="{ENV_REGEX_NS}/Table_01",
-                            init_state=AssetBaseCfg.InitialStateCfg(pos=[0, 0, -0.83]),
-                            spawn=UsdFileCfg(usd_path=assets_folder + "table.usd"))
-
-    table_02 = AssetBaseCfg(
-                            prim_path="{ENV_REGEX_NS}/Table_02",
-                            init_state=AssetBaseCfg.InitialStateCfg(pos=[0.82, 0.0, -0.83]),
-                            spawn=UsdFileCfg(usd_path=assets_folder + "table.usd"))
-    # main_shell = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/flashlight_main_shell",
-    #                           spawn=UsdFileCfg(usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell.usd"))
-    # main_shell.init_state.pos = (0.0, 0.3, 0.83)
-
-    kitting_tray = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/flashlight_kitting_tray",
-                                init_state=AssetBaseCfg.InitialStateCfg(pos=[0.44, -0.27, 0.0]),
-                                spawn=UsdFileCfg(usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_kitting_tray.usd"))
-    # kitting_tray.init_state.pos = (0.8, 0.3, 0.83)
+    # Use preset stage instead of spawning individual assets
+    FAIR_stage = AssetBaseCfg(
+                            prim_path="{ENV_REGEX_NS}/FAIR_stage",
+                            init_state=AssetBaseCfg.InitialStateCfg(pos=[0, 0, 0]),
+                            spawn=UsdFileCfg(usd_path=assets_folder + "FAIR_RL_Stage.usd"))
 
 ##
 # MDP settings
 ##
 
-
 @configclass
 class CommandsCfg:
-    """Command terms for the MDP."""
+    """Command terms for the MDP. Used to randomise the position of where to take object."""
 
     object_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",

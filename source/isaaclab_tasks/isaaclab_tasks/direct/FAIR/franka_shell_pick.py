@@ -7,8 +7,10 @@ from __future__ import annotations
 
 import torch
 
+import numpy as np
 from isaacsim.core.utils.stage import get_current_stage
 from isaacsim.core.utils.torch.transformations import tf_combine, tf_inverse, tf_vector
+from isaacsim.core.utils.rotations import euler_angles_to_quat
 from pxr import UsdGeom
 
 import isaaclab.sim as sim_utils
@@ -16,11 +18,12 @@ from isaaclab.actuators.actuator_cfg import ImplicitActuatorCfg
 from isaaclab.assets import Articulation, ArticulationCfg, AssetBaseCfg, RigidObjectCfg, RigidObject
 from isaaclab.envs import DirectRLEnv, DirectRLEnvCfg
 from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.sim import SimulationCfg
+from isaaclab.sim import SimulationCfg, UsdFileCfg
 from isaaclab.terrains import TerrainImporterCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.math import sample_uniform
+from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 
 
 @configclass
@@ -46,7 +49,7 @@ class FrankaFAIREnvCfg(DirectRLEnvCfg):
     )
 
     # scene
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=4096, env_spacing=3.0, replicate_physics=True)
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=30, env_spacing=3.0, replicate_physics=True)
 
     # robot
     robot = ArticulationCfg(
@@ -102,18 +105,33 @@ class FrankaFAIREnvCfg(DirectRLEnvCfg):
     )
 
     assets_folder = "/home/matthewstory/Desktop/FAIR_RL_Stage/"
-    table_01 = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/Table_01", spawn=sim_utils.UsdFileCfg(usd_path=assets_folder + "table.usd"))
-    table_02 = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/Table_02", spawn=sim_utils.UsdFileCfg(usd_path=assets_folder + "table.usd"))
-    table_01.init_state.pos = (-0.3, 0.4, -0.83)
-    table_02.init_state.pos = (0.52, 0.4, -0.83)
+    FAIR_stage = AssetBaseCfg(
+                            prim_path="{ENV_REGEX_NS}/FAIR_stage",
+                            init_state=AssetBaseCfg.InitialStateCfg(pos=[0, 0, 0]),
+                            spawn=UsdFileCfg(usd_path=assets_folder + "FAIR_RL_Stage.usd"))
 
-    main_shell = RigidObjectCfg(prim_path="{ENV_REGEX_NS}/flashlight_main_shell",
-                              spawn=sim_utils.UsdFileCfg(usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell.usd"))
-    main_shell.init_state.pos = (-0.3, 0.7, 0.0)
-
-    kitting_tray = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/flashlight_kitting_tray",
-                                spawn=sim_utils.UsdFileCfg(usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_kitting_tray.usd"))
-    kitting_tray.init_state.pos = (0.5, 0.7, 0.0)
+    # main shell
+    rotation = euler_angles_to_quat(np.array([0.0, 0.0, -np.pi/2]))
+    # Set Cube as object
+    object = RigidObjectCfg(
+            prim_path="{ENV_REGEX_NS}/Object",
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.27, 0.1], 
+                                                      rot=rotation),
+            spawn=UsdFileCfg(
+                usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell.usd",
+                # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
+                scale=(0.001, 0.001, 0.001),
+                rigid_props=RigidBodyPropertiesCfg(
+                    solver_position_iteration_count=16,
+                    solver_velocity_iteration_count=1,
+                    max_angular_velocity=1000.0,
+                    max_linear_velocity=1000.0,
+                    max_depenetration_velocity=5.0,
+                    disable_gravity=False,
+                ),
+                semantic_tags=[("class", "main_shell")],
+            ),
+        )
 
     # ground plane
     terrain = TerrainImporterCfg(
@@ -212,38 +230,39 @@ class FrankaFAIREnv(DirectRLEnv):
         self.robot_local_grasp_pos = robot_local_pose_pos.repeat((self.num_envs, 1))
         self.robot_local_grasp_rot = robot_local_grasp_pose_rot.repeat((self.num_envs, 1))
 
-        main_shell_local_grasp_pose = torch.tensor([0.3, 0.01, 0.0, 1.0, 0.0, 0.0, 0.0], device=self.device)
-        self.main_shell_local_grasp_pos = main_shell_local_grasp_pose[0:3].repeat((self.num_envs, 1))
-        self.main_shell_local_grasp_rot = main_shell_local_grasp_pose[3:7].repeat((self.num_envs, 1))
+        # TODO: set to find the pose of the main shell
+        object_local_grasp_pose = torch.tensor([0.44, 0.27, 0.1, 1.0, 0.0, 0.0, 0.0], device=self.device)
+        self.object_local_grasp_pos = object_local_grasp_pose[0:3].repeat((self.num_envs, 1))
+        self.object_local_grasp_rot = object_local_grasp_pose[3:7].repeat((self.num_envs, 1))
 
         self.gripper_forward_axis = torch.tensor([0, 0, 1], device=self.device, dtype=torch.float32).repeat(
             (self.num_envs, 1)
         )
-        self.drawer_inward_axis = torch.tensor([-1, 0, 0], device=self.device, dtype=torch.float32).repeat(
+        self.object_inward_axis = torch.tensor([-1, 0, 0], device=self.device, dtype=torch.float32).repeat(
             (self.num_envs, 1)
         )
         self.gripper_up_axis = torch.tensor([0, 1, 0], device=self.device, dtype=torch.float32).repeat(
             (self.num_envs, 1)
         )
-        self.drawer_up_axis = torch.tensor([0, 0, 1], device=self.device, dtype=torch.float32).repeat(
+        self.object_up_axis = torch.tensor([0, 0, 1], device=self.device, dtype=torch.float32).repeat(
             (self.num_envs, 1)
         )
 
         self.hand_link_idx = self._robot.find_bodies("panda_link7")[0][0]
         self.left_finger_link_idx = self._robot.find_bodies("panda_leftfinger")[0][0]
         self.right_finger_link_idx = self._robot.find_bodies("panda_rightfinger")[0][0]
-        self.drawer_link_idx = self._cabinet.find_bodies("drawer_top")[0][0]
+        self.object_link_idx = self.object.find_bodies("Mesh")[0][0]
 
         self.robot_grasp_rot = torch.zeros((self.num_envs, 4), device=self.device)
         self.robot_grasp_pos = torch.zeros((self.num_envs, 3), device=self.device)
-        self.main_shell_grasp_rot = torch.zeros((self.num_envs, 4), device=self.device)
-        self.main_shell_grasp_pos = torch.zeros((self.num_envs, 3), device=self.device)
+        self.object_grasp_rot = torch.zeros((self.num_envs, 4), device=self.device)
+        self.object_grasp_pos = torch.zeros((self.num_envs, 3), device=self.device)
 
     def _setup_scene(self):
         self._robot = Articulation(self.cfg.robot)
-        self._main_shell = RigidObject(self.cfg.main_shell)
+        self.object = RigidObject(self.cfg.object)
         self.scene.articulations["robot"] = self._robot
-        self.scene.rigid_objects["main_shell"] = self._main_shell
+        self.scene.rigid_objects["object"] = self.object
 
         self.cfg.terrain.num_envs = self.scene.cfg.num_envs
         self.cfg.terrain.env_spacing = self.scene.cfg.env_spacing
@@ -272,7 +291,7 @@ class FrankaFAIREnv(DirectRLEnv):
     # post-physics step calls
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
-        terminated = self._cabinet.data.joint_pos[:, 3] > 0.39
+        terminated = self.object.data.root_pos_w[:, 2] > 0.09
         truncated = self.episode_length_buf >= self.max_episode_length - 1
         return terminated, truncated
 
@@ -284,17 +303,17 @@ class FrankaFAIREnv(DirectRLEnv):
 
         return self._compute_rewards(
             self.actions,
-            self._cabinet.data.joint_pos,
+            self.object.data.root_pos_w,
             self.robot_grasp_pos,
-            self.drawer_grasp_pos,
+            self.object_grasp_pos,
             self.robot_grasp_rot,
-            self.drawer_grasp_rot,
+            self.object_grasp_rot,
             robot_left_finger_pos,
             robot_right_finger_pos,
             self.gripper_forward_axis,
-            self.drawer_inward_axis,
+            self.object_inward_axis,
             self.gripper_up_axis,
-            self.drawer_up_axis,
+            self.object_up_axis,
             self.num_envs,
             self.cfg.dist_reward_scale,
             self.cfg.rot_reward_scale,
@@ -319,8 +338,8 @@ class FrankaFAIREnv(DirectRLEnv):
         self._robot.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
 
         # cabinet state
-        zeros = torch.zeros((len(env_ids), self._cabinet.num_joints), device=self.device)
-        self._cabinet.write_joint_state_to_sim(zeros, zeros, env_ids=env_ids)
+        zeros = torch.zeros((len(env_ids), 1), device=self.device)
+        self.object.write_root_pose_to_sim(zeros, zeros, env_ids=env_ids)
 
         # Need to refresh the intermediate values so that _get_observations() can use the latest values
         self._compute_intermediate_values(env_ids)
@@ -332,15 +351,15 @@ class FrankaFAIREnv(DirectRLEnv):
             / (self.robot_dof_upper_limits - self.robot_dof_lower_limits)
             - 1.0
         )
-        to_target = self.drawer_grasp_pos - self.robot_grasp_pos
+        to_target = self.object_grasp_pos - self.robot_grasp_pos
 
         obs = torch.cat(
             (
                 dof_pos_scaled,
                 self._robot.data.joint_vel * self.cfg.dof_velocity_scale,
                 to_target,
-                self._cabinet.data.joint_pos[:, 3].unsqueeze(-1),
-                self._cabinet.data.joint_vel[:, 3].unsqueeze(-1),
+                self.object.data.root_com_pos_w[:, 3].unsqueeze(-1),
+                self.object.data.root_ang_vel_w[:, 3].unsqueeze(-1),
             ),
             dim=-1,
         )
@@ -354,22 +373,22 @@ class FrankaFAIREnv(DirectRLEnv):
 
         hand_pos = self._robot.data.body_pos_w[env_ids, self.hand_link_idx]
         hand_rot = self._robot.data.body_quat_w[env_ids, self.hand_link_idx]
-        drawer_pos = self._cabinet.data.body_pos_w[env_ids, self.drawer_link_idx]
-        drawer_rot = self._cabinet.data.body_quat_w[env_ids, self.drawer_link_idx]
+        object_pos = self.object.data.body_pos_w[env_ids]
+        object_rot = self.object.data.body_quat_w[env_ids]
         (
             self.robot_grasp_rot[env_ids],
             self.robot_grasp_pos[env_ids],
-            self.drawer_grasp_rot[env_ids],
-            self.drawer_grasp_pos[env_ids],
+            self.object_grasp_rot[env_ids],
+            self.object_grasp_pos[env_ids],
         ) = self._compute_grasp_transforms(
             hand_rot,
             hand_pos,
             self.robot_local_grasp_rot[env_ids],
             self.robot_local_grasp_pos[env_ids],
-            drawer_rot,
-            drawer_pos,
-            self.drawer_local_grasp_rot[env_ids],
-            self.drawer_local_grasp_pos[env_ids],
+            object_rot,
+            object_pos,
+            self.object_local_grasp_rot[env_ids],
+            self.object_local_grasp_pos[env_ids],
         )
 
     def _compute_rewards(
@@ -377,15 +396,15 @@ class FrankaFAIREnv(DirectRLEnv):
         actions,
         cabinet_dof_pos,
         franka_grasp_pos,
-        drawer_grasp_pos,
+        object_grasp_pos,
         franka_grasp_rot,
-        drawer_grasp_rot,
+        object_grasp_rot,
         franka_lfinger_pos,
         franka_rfinger_pos,
         gripper_forward_axis,
-        drawer_inward_axis,
+        object_inward_axis,
         gripper_up_axis,
-        drawer_up_axis,
+        object_up_axis,
         num_envs,
         dist_reward_scale,
         rot_reward_scale,
@@ -395,15 +414,15 @@ class FrankaFAIREnv(DirectRLEnv):
         joint_positions,
     ):
         # distance from hand to the drawer
-        d = torch.norm(franka_grasp_pos - drawer_grasp_pos, p=2, dim=-1)
+        d = torch.norm(franka_grasp_pos - object_grasp_pos, p=2, dim=-1)
         dist_reward = 1.0 / (1.0 + d**2)
         dist_reward *= dist_reward
         dist_reward = torch.where(d <= 0.02, dist_reward * 2, dist_reward)
 
         axis1 = tf_vector(franka_grasp_rot, gripper_forward_axis)
-        axis2 = tf_vector(drawer_grasp_rot, drawer_inward_axis)
+        axis2 = tf_vector(object_grasp_rot, object_inward_axis)
         axis3 = tf_vector(franka_grasp_rot, gripper_up_axis)
-        axis4 = tf_vector(drawer_grasp_rot, drawer_up_axis)
+        axis4 = tf_vector(object_grasp_rot, object_up_axis)
 
         dot1 = (
             torch.bmm(axis1.view(num_envs, 1, 3), axis2.view(num_envs, 3, 1)).squeeze(-1).squeeze(-1)
@@ -420,9 +439,9 @@ class FrankaFAIREnv(DirectRLEnv):
         # how far the cabinet has been opened out
         open_reward = cabinet_dof_pos[:, 3]  # drawer_top_joint
 
-        # penalty for distance of each finger from the drawer handle
-        lfinger_dist = franka_lfinger_pos[:, 2] - drawer_grasp_pos[:, 2]
-        rfinger_dist = drawer_grasp_pos[:, 2] - franka_rfinger_pos[:, 2]
+        # penalty for distance of each finger from the object handle
+        lfinger_dist = franka_lfinger_pos[:, 2] - object_grasp_pos[:, 2]
+        rfinger_dist = object_grasp_pos[:, 2] - franka_rfinger_pos[:, 2]
         finger_dist_penalty = torch.zeros_like(lfinger_dist)
         finger_dist_penalty += torch.where(lfinger_dist < 0, lfinger_dist, torch.zeros_like(lfinger_dist))
         finger_dist_penalty += torch.where(rfinger_dist < 0, rfinger_dist, torch.zeros_like(rfinger_dist))

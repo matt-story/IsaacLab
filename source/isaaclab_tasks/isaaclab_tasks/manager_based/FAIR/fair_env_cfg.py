@@ -37,13 +37,13 @@ scene, action, observation and event managers to create an environment.
 
 import math
 import torch
-
+import numpy as np
 from dataclasses import MISSING
 
 import isaaclab.sim as sim_utils
 # import isaaclab.envs.mdp as mdp
 from isaaclab_tasks.manager_based.manipulation.lift import mdp
-from isaaclab.envs import ManagerBasedEnv, ManagerBasedEnvCfg
+from isaaclab.envs import ManagerBasedEnv, ManagerBasedEnvCfg, ManagerBasedRLEnvCfg
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
 from isaaclab.managers import ObservationTermCfg as ObsTerm
@@ -55,11 +55,10 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, DeformableObjectCfg, RigidObjectCfg
 from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
-from isaaclab.sim import SimulationContext, UsdFileCfg
+from isaaclab.sim import SimulationContext
+from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransformerCfg
 
-from isaaclab_assets import UR10e_CFG, FRANKA_PANDA_HIGH_PD_CFG # isort:skip
-from isaaclab_tasks.manager_based.classic.cartpole.cartpole_env_cfg import CartpoleSceneCfg
 
 assets_folder = "/home/matthewstory/Desktop/FAIR_RL_Stage/"
 
@@ -77,30 +76,35 @@ class FAIRSceneCfg(InteractiveSceneCfg):
     # target object: will be populated by agent env cfg
     object: RigidObjectCfg | DeformableObjectCfg = MISSING
 
-    # ground plane
-    ground = AssetBaseCfg(
-                        prim_path="/World/defaultGroundPlane",
-                        init_state=AssetBaseCfg.InitialStateCfg(pos=[0, 0, -0.83]),
-                        spawn=sim_utils.GroundPlaneCfg())
-
-    # lights
-    dome_light = AssetBaseCfg(
-        prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=3000.0, color=(0.75, 0.75, 0.75))
+    FAIR_stage = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/FAIR_stage",
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.0, 0.0, 0.0], rot=[1, 0, 0, 0]),
+        spawn=UsdFileCfg(usd_path="/home/matthewstory/Desktop/FAIR_RL_Stage/FAIR_RL_Stage.usd"),
+    )
+    
+    
+    # plane
+    plane = AssetBaseCfg(
+        prim_path="/World/GroundPlane",
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0, 0, -0.79]),
+        spawn=GroundPlaneCfg(),
     )
 
-    # Use preset stage instead of spawning individual assets
-    FAIR_stage = AssetBaseCfg(
-                            prim_path="{ENV_REGEX_NS}/FAIR_stage",
-                            init_state=AssetBaseCfg.InitialStateCfg(pos=[0, 0, 0]),
-                            spawn=UsdFileCfg(usd_path=assets_folder + "FAIR_RL_Stage.usd"))
+    # lights
+    # light = AssetBaseCfg(
+    #     prim_path="/World/light",
+    #     spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
+    # )
+
 
 ##
 # MDP settings
 ##
 
+
 @configclass
 class CommandsCfg:
-    """Command terms for the MDP. Used to randomise the position of where to take object."""
+    """Command terms for the MDP."""
 
     object_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
@@ -108,9 +112,10 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.4, 0.6), pos_y=(-0.25, 0.25), pos_z=(0.25, 0.5), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0.0, 0.0)
+            pos_x=(0.4, 0.6), pos_y=(-0.25, 0.25), pos_z=(0.25, 0.5), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(-np.pi/2, np.pi/2)
         ),
     )
+
 
 @configclass
 class ActionsCfg:
@@ -123,7 +128,7 @@ class ActionsCfg:
 
 @configclass
 class ObservationsCfg:
-    """Observation specifications for the environment."""
+    """Observation specifications for the MDP."""
 
     @configclass
     class PolicyCfg(ObsGroup):
@@ -135,8 +140,8 @@ class ObservationsCfg:
         target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})
         actions = ObsTerm(func=mdp.last_action)
 
-        def __post_init__(self) -> None:
-            self.enable_corruption = False
+        def __post_init__(self):
+            self.enable_corruption = True
             self.concatenate_terms = True
 
     # observation groups
@@ -153,11 +158,12 @@ class EventCfg:
         func=mdp.reset_root_state_uniform,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.1, 0.1), "y": (-0.25, 0.25), "z": (0.0, 0.0)},
+            "pose_range": {"x": (-0.15, 0.15), "y": (-0.2, 0.2), "z": (0.0, 0.0)},
             "velocity_range": {},
             "asset_cfg": SceneEntityCfg("object", body_names="Object"),
         },
     )
+
 
 @configclass
 class RewardsCfg:
@@ -188,6 +194,7 @@ class RewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot")},
     )
 
+
 @configclass
 class TerminationsCfg:
     """Termination terms for the MDP."""
@@ -197,6 +204,7 @@ class TerminationsCfg:
     object_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": -0.05, "asset_cfg": SceneEntityCfg("object")}
     )
+
 
 @configclass
 class CurriculumCfg:
@@ -215,11 +223,11 @@ class CurriculumCfg:
 ##    
 
 @configclass
-class FAIREnvCfg(ManagerBasedEnvCfg):
+class FAIREnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the FAIR environment."""
 
     # Scene settings
-    scene: FAIRSceneCfg = FAIRSceneCfg(num_envs=32, env_spacing=2.5)
+    scene: FAIRSceneCfg = FAIRSceneCfg(num_envs=4096, env_spacing=2.0)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()

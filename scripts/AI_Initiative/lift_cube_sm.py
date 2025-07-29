@@ -50,6 +50,7 @@ import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.manager_based.manipulation.lift.lift_env_cfg import LiftEnvCfg
 from isaaclab_tasks.manager_based.FAIR.fair_env_cfg import FAIREnvCfg
 from isaaclab_tasks.utils.parse_cfg import parse_env_cfg
+from isaaclab.utils.math import subtract_frame_transforms
 
 # initialize warp
 wp.init()
@@ -274,8 +275,9 @@ def main():
     actions = torch.zeros(env.unwrapped.action_space.shape, device=env.unwrapped.device)
     actions[:, 3] = 1.0
     # desired object orientation (we only do position control of object)
-    desired_orientation = torch.zeros((env.unwrapped.num_envs, 4), device=env.unwrapped.device)
-    desired_orientation[:, 1] = 1.0
+    # desired_orientation = torch.zeros((env.unwrapped.num_envs, 4), device=env.unwrapped.device)
+    # desired_orientation[:, 1] = 1.0
+    
     # create state machine
     pick_sm = PickAndLiftSm(
         env_cfg.sim.dt * env_cfg.decimation, env.unwrapped.num_envs, env.unwrapped.device, position_threshold=0.01
@@ -294,14 +296,19 @@ def main():
             tcp_rest_orientation = ee_frame_sensor.data.target_quat_w[..., 0, :].clone()
             # -- object frame
             object_data: RigidObjectData = env.unwrapped.scene["object"].data
+            robot_data: RigidObjectData = env.unwrapped.scene["robot"].data
             object_position = object_data.root_pos_w - env.unwrapped.scene.env_origins
+            object_pos_w = object_data.root_pos_w[:, :3]
+            object_rot_w = object_data.root_quat_w
+            _, object_rot_b = subtract_frame_transforms(robot_data.root_pos_w, robot_data.root_quat_w, object_pos_w, object_rot_w)
             # -- target object frame
             desired_position = env.unwrapped.command_manager.get_command("object_pose")[..., :3]
+            desired_orientation = env.unwrapped.command_manager.get_command("object_pose")[..., 3:]
 
             # advance state machine
             actions = pick_sm.compute(
                 torch.cat([tcp_rest_position, tcp_rest_orientation], dim=-1),
-                torch.cat([object_position, desired_orientation], dim=-1),
+                torch.cat([object_position, desired_orientation], dim=-1),         # TODO Change to object orientation
                 torch.cat([desired_position, desired_orientation], dim=-1),
             )
 

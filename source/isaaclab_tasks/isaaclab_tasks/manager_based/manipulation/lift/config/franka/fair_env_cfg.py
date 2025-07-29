@@ -14,6 +14,7 @@ from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 
 from isaaclab_tasks.manager_based.manipulation.lift import mdp
 from isaaclab_tasks.manager_based.FAIR.fair_env_cfg import FAIREnvCfg
+from isaaclab_tasks.manager_based.manipulation.lift.lift_env_cfg import LiftEnvCfg
 
 from isaacsim.core.utils.rotations import euler_angles_to_quat
 
@@ -26,7 +27,7 @@ from isaaclab_assets.robots.franka import FRANKA_PANDA_CFG  # isort: skip
 assets_folder = "/home/matthewstory/Desktop/FAIR_RL_Stage/"
 
 @configclass
-class FrankaCubeLiftEnvCfg(FAIREnvCfg):
+class FrankaPickPartEnvCfg(FAIREnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
@@ -50,11 +51,12 @@ class FrankaCubeLiftEnvCfg(FAIREnvCfg):
         rotation = euler_angles_to_quat(np.array([0.0, 0.0, -np.pi/2]))
         # Set Cube as object
         self.scene.object = RigidObjectCfg(
-            prim_path="{ENV_REGEX_NS}/Main_shell",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.27, 0.06], 
-                                                      rot=rotation),
+            prim_path="{ENV_REGEX_NS}/Object",
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.0, 0.1], 
+                                                      rot=[1, 0, 0, 0]),
             spawn=UsdFileCfg(
                 usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell.usd",
+                # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
                 scale=(0.001, 0.001, 0.001),
                 rigid_props=RigidBodyPropertiesCfg(
                     solver_position_iteration_count=16,
@@ -64,6 +66,7 @@ class FrankaCubeLiftEnvCfg(FAIREnvCfg):
                     max_depenetration_velocity=5.0,
                     disable_gravity=False,
                 ),
+                semantic_tags=[("class", "main_shell")],
             ),
         )
 
@@ -88,7 +91,7 @@ class FrankaCubeLiftEnvCfg(FAIREnvCfg):
 
 
 @configclass
-class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):
+class FrankaPickPartEnvCfg_PLAY(FrankaPickPartEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()

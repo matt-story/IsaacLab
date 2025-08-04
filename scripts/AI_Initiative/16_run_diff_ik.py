@@ -54,7 +54,7 @@ from isaaclab.sim import SimulationContext, UsdFileCfg
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import UR10e_CFG,FRANKA_PANDA_HIGH_PD_CFG, UR10_CFG, UR10_gripper_CFG  # isort:skip
+from isaaclab_assets import UR10e_CFG,FRANKA_PANDA_HIGH_PD_CFG, UR10_CFG, UR10e_gripper_CFG  # isort:skip
 
 assets_folder = "/home/matthewstory/Desktop/FAIR_RL_Stage/"
 
@@ -94,7 +94,7 @@ class TableTopSceneCfg(InteractiveSceneCfg):
     elif args_cli.robot == "ur10":
         robot = UR10_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
     elif args_cli.robot == "ur10e":
-        robot = UR10e_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        robot = UR10e_gripper_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
     else:
         raise ValueError(f"Robot {args_cli.robot} is not supported. Valid: franka_panda, ur10, ur10e")
     

@@ -91,10 +91,10 @@ class FAIRSceneCfg(InteractiveSceneCfg):
     )
 
     # lights
-    # light = AssetBaseCfg(
-    #     prim_path="/World/light",
-    #     spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
-    # )
+    light = AssetBaseCfg(
+        prim_path="/World/light",
+        spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
+    )
 
 
 ##
@@ -112,7 +112,7 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.4, 0.6), pos_y=(-0.25, 0.25), pos_z=(0.25, 0.5), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(-np.pi/2, np.pi/2)
+            pos_x=(0.45, 0.45), pos_y=(-0.0, 0.0), pos_z=(0.3, 0.3), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0, 0)
         ),
     )
 
@@ -156,9 +156,10 @@ class EventCfg:
 
     reset_object_position = EventTerm(
         func=mdp.reset_root_state_uniform,
+        # func=mdp.reset_root_state_with_random_orientation,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.15, 0.15), "y": (-0.2, 0.2), "z": (0.0, 0.0)},
+            "pose_range": {"x": (-0.1, 0.1), "y": (-0.2, 0.2), "z": (0.0, 0.0)},
             "velocity_range": {},
             "asset_cfg": SceneEntityCfg("object", body_names="Object"),
         },
@@ -225,6 +226,7 @@ class CurriculumCfg:
 @configclass
 class FAIREnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the FAIR environment."""
+    
 
     # Scene settings
     scene: FAIRSceneCfg = FAIRSceneCfg(num_envs=4096, env_spacing=2.0)
@@ -250,5 +252,6 @@ class FAIREnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.bounce_threshold_velocity = 0.2
         self.sim.physx.bounce_threshold_velocity = 0.01
         self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 1024 * 1024 * 4
-        self.sim.physx.gpu_total_aggregate_pairs_capacity = 16 * 1024
+         # Resolves PhysX issue
+        self.sim.physx.gpu_total_aggregate_pairs_capacity = 25000
         self.sim.physx.friction_correlation_distance = 0.00625

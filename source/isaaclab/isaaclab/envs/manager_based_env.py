@@ -74,10 +74,12 @@ class ManagerBasedEnv:
             RuntimeError: If a simulation context already exists. The environment must always create one
                 since it configures the simulation context and controls the simulation.
         """
+        
         # check that the config is valid
         cfg.validate()
         # store inputs to class
         self.cfg = cfg
+        
         # initialize internal variables
         self._is_closed = False
 

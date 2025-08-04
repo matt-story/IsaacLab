@@ -85,7 +85,7 @@ UR10e_CFG = ArticulationCfg(
 
 UR10e_gripper_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/matthewstory/Desktop/FAIR_RL_Stage/Collected_UR_flashlight_assembly/ur10e_w_Robotiq_2F_85.usd",
+        usd_path="/home/matthewstory/Desktop/FAIR_RL_Stage/Collected_UR_flashlight_assembly/ur10e_edit.usd",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             max_depenetration_velocity=5.0,
@@ -96,9 +96,9 @@ UR10e_gripper_CFG = ArticulationCfg(
         joint_pos={
             "shoulder_pan_joint": 0.0,
             "shoulder_lift_joint": -1.712,
-            "elbow_joint": 0.0,
-            "wrist_1_joint": 0.0,
-            "wrist_2_joint": 0.0,
+            "elbow_joint": 1.712,
+            "wrist_1_joint": -1.712,
+            "wrist_2_joint": -1.712,
             "wrist_3_joint": 0.0,
             "finger_joint": 0.0,
             "right_outer_knuckle_joint": 0.0,
@@ -141,20 +141,21 @@ UR10e_gripper_CFG = ArticulationCfg(
         #     stiffness=1268.18604,
         #     damping=5.07,
         # ),
-        # "finger": ImplicitActuatorCfg(
-        #     joint_names_expr=["finger_joint"],
-        #     velocity_limit_sim=130.0,
-        #     effort_limit_sim=16.5,
-        #     stiffness=0.17,
-        #     damping=0.0002,
-        # ),
-        # "inner_finger": ImplicitActuatorCfg(
-        #     joint_names_expr=["right_inner_finger_joint", "left_inner_finger_joint"],
-        #     velocity_limit_sim=1000000.0,
-        #     effort_limit_sim=0.5,
-        #     stiffness=0.002,
-        #     damping=0.00001,
-        # ),
+        "gripper": ImplicitActuatorCfg(
+            joint_names_expr=["finger_joint", "right_outer_knuckle_joint"],
+            velocity_limit_sim=80.0,
+            effort_limit_sim=2.0,
+            stiffness=0.0,
+            damping=5000,
+        ),
+        "inner_finger": ImplicitActuatorCfg(
+            joint_names_expr=["right_inner_finger_joint", "left_inner_finger_joint", "right_inner_finger_knuckle_joint", 
+                              "left_inner_finger_knuckle_joint", "right_outer_finger_joint", "left_outer_finger_joint"],
+            velocity_limit_sim=0.0,
+            effort_limit_sim=0.0,
+            stiffness=0.0,
+            damping=0.0,
+        ),
     },
 )
 

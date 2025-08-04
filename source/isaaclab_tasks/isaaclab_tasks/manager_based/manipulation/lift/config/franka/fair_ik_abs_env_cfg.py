@@ -19,7 +19,7 @@ from . import fair_env_cfg
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG  # isort: skip
+from isaaclab_assets import FRANKA_PANDA_HIGH_PD_CFG, UR10e_gripper_CFG  # isort: skip
 
 
 ##
@@ -28,7 +28,7 @@ from isaaclab_assets.robots.franka import FRANKA_PANDA_HIGH_PD_CFG  # isort: ski
 
 
 @configclass
-class FrankaCubeLiftEnvCfg(fair_env_cfg.FrankaCubeLiftEnvCfg):
+class FrankaPickPartEnvCfg(fair_env_cfg.FrankaPickPartEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
@@ -48,7 +48,7 @@ class FrankaCubeLiftEnvCfg(fair_env_cfg.FrankaCubeLiftEnvCfg):
 
 
 @configclass
-class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):
+class FrankaPickPartEnvCfg_PLAY(FrankaPickPartEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
@@ -59,13 +59,42 @@ class FrankaCubeLiftEnvCfg_PLAY(FrankaCubeLiftEnvCfg):
         self.observations.policy.enable_corruption = False
 
 
+@configclass
+class UR10PickPartEnvCfg(fair_env_cfg.UR10PickPartEnvCfg):
+    def __post_init__(self):
+        # post init of parent
+        super().__post_init__()
+
+        # Set UR10 as robot
+        # We switch here to a stiffer PD controller for IK tracking to be better.
+        self.scene.robot = UR10e_gripper_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+
+        # Set actions for the specific robot type (UR10)
+        self.actions.arm_action = DifferentialInverseKinematicsActionCfg(
+            asset_name="robot",
+            joint_names=["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"],
+            body_name="gripper_base_link",
+            controller=DifferentialIKControllerCfg(command_type="pose", use_relative_mode=False, ik_method="dls"),
+            body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.15, -0.02, 0.1]),
+        )
+
+@configclass
+class UR10PickPartEnvCfg_PLAY(UR10PickPartEnvCfg):
+    def __post_init__(self):
+        # post init of parent
+        super().__post_init__()
+        # make a smaller scene for play
+        self.scene.num_envs = 50
+        self.scene.env_spacing = 2.5
+        # disable randomization for play
+        self.observations.policy.enable_corruption = False
 ##
 # Deformable object lift environment.
 ##
 
 
 @configclass
-class FrankaTeddyBearLiftEnvCfg(FrankaCubeLiftEnvCfg):
+class FrankaTeddyBearLiftEnvCfg(FrankaPickPartEnvCfg):
     def __post_init__(self):
         # post init of parent
         super().__post_init__()

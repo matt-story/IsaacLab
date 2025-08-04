@@ -43,6 +43,7 @@ import torch
 from collections.abc import Sequence
 
 import warp as wp
+import numpy as np
 
 from isaaclab.assets.rigid_object.rigid_object_data import RigidObjectData
 
@@ -52,6 +53,7 @@ from isaaclab_tasks.manager_based.FAIR.fair_env_cfg import FAIREnvCfg
 from isaaclab_tasks.utils.parse_cfg import parse_env_cfg
 from isaaclab.utils.math import subtract_frame_transforms
 
+from isaacsim.core.utils.rotations import euler_angles_to_quat
 # initialize warp
 wp.init()
 
@@ -261,13 +263,13 @@ class PickAndLiftSm:
 def main():
     # parse configuration
     env_cfg: FAIREnvCfg = parse_env_cfg(
-        "FAIR-Lift-Cube-Franka-IK-Abs-v0",
+        "FAIR-Pick-Part-UR10-IK-Abs-v0",
         device=args_cli.device,
         num_envs=args_cli.num_envs,
         use_fabric=not args_cli.disable_fabric,
     )
     # create environment
-    env = gym.make("FAIR-Lift-Cube-Franka-IK-Abs-v0", cfg=env_cfg)
+    env = gym.make("FAIR-Pick-Part-UR10-IK-Abs-v0", cfg=env_cfg)
     # reset environment at start
     env.reset()
 
@@ -275,9 +277,13 @@ def main():
     actions = torch.zeros(env.unwrapped.action_space.shape, device=env.unwrapped.device)
     actions[:, 3] = 1.0
     # desired object orientation (we only do position control of object)
-    # desired_orientation = torch.zeros((env.unwrapped.num_envs, 4), device=env.unwrapped.device)
-    # desired_orientation[:, 1] = 1.0
-    
+    desired_orientation = torch.zeros((env.unwrapped.num_envs, 4), device=env.unwrapped.device)
+    des_orientation = euler_angles_to_quat(np.array([0, np.pi/2, np.pi]))    
+    desired_orientation[:, 0] = des_orientation[0]
+    desired_orientation[:, 1] = des_orientation[1]
+    desired_orientation[:, 2] = des_orientation[2]
+    desired_orientation[:, 3] = des_orientation[3]
+
     # create state machine
     pick_sm = PickAndLiftSm(
         env_cfg.sim.dt * env_cfg.decimation, env.unwrapped.num_envs, env.unwrapped.device, position_threshold=0.01
@@ -303,7 +309,7 @@ def main():
             _, object_rot_b = subtract_frame_transforms(robot_data.root_pos_w, robot_data.root_quat_w, object_pos_w, object_rot_w)
             # -- target object frame
             desired_position = env.unwrapped.command_manager.get_command("object_pose")[..., :3]
-            desired_orientation = env.unwrapped.command_manager.get_command("object_pose")[..., 3:]
+            # desired_orientation = env.unwrapped.command_manager.get_command("object_pose")[..., 3:]
 
             # advance state machine
             actions = pick_sm.compute(

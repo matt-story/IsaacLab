@@ -142,3 +142,13 @@ gym.register(
     },
     disable_env_checker=True,
 )
+
+gym.register(
+    id="FAIR-Pick-Part-UR10-IK-Rel-v0",
+    entry_point="isaaclab.envs:ManagerBasedRLEnv",
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.fair_ik_rel_env_cfg:UR10PickPartEnvCfg",
+        "robomimic_bc_cfg_entry_point": os.path.join(agents.__path__[0], "robomimic/bc.json"),
+    },
+    disable_env_checker=True,
+)

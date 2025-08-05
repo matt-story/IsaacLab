@@ -19,7 +19,7 @@ from . import fair_env_cfg
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import FRANKA_PANDA_HIGH_PD_CFG, UR10e_gripper_CFG  # isort: skip
+from isaaclab_assets import FRANKA_PANDA_HIGH_PD_CFG, UR10e_gripper_CFG, UR10e_gripper_HIGH_PD_CFG  # isort: skip
 
 
 ##
@@ -67,7 +67,7 @@ class UR10PickPartEnvCfg(fair_env_cfg.UR10PickPartEnvCfg):
 
         # Set UR10 as robot
         # We switch here to a stiffer PD controller for IK tracking to be better.
-        self.scene.robot = UR10e_gripper_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = UR10e_gripper_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
         # Set actions for the specific robot type (UR10)
         self.actions.arm_action = DifferentialInverseKinematicsActionCfg(
@@ -75,7 +75,7 @@ class UR10PickPartEnvCfg(fair_env_cfg.UR10PickPartEnvCfg):
             joint_names=["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"],
             body_name="gripper_base_link",
             controller=DifferentialIKControllerCfg(command_type="pose", use_relative_mode=False, ik_method="dls"),
-            body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.15, -0.02, 0.1]),
+            body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.1]),
         )
 
 @configclass

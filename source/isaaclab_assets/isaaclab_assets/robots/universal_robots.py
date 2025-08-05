@@ -56,6 +56,7 @@ UR10_CFG = ArticulationCfg(
 UR10e_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         usd_path=f"{ISAAC_NUCLEUS_DIR}/Robots/UniversalRobots/ur10e/ur10e.usd",
+        # usd_path="/home/matthewstory/Desktop/FAIR_RL_Stage/Collected_UR_flashlight_assembly/ur10e_edit.usd",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             max_depenetration_velocity=5.0,
@@ -102,13 +103,13 @@ UR10e_gripper_CFG = ArticulationCfg(
             "wrist_3_joint": 0.0,
             "finger_joint": 0.0,
             "right_outer_knuckle_joint": 0.0,
-            "right_outer_finger_joint": 0.0,
-            "right_inner_finger_joint": 0.0,
+            # "right_outer_finger_joint": 0.0,
+            # "right_inner_finger_joint": 0.0,
             # "right_inner_knuckle_joint": 0.0,
-            "right_inner_finger_knuckle_joint": 0.0,
-            "left_outer_finger_joint": 0.0,
-            "left_inner_finger_knuckle_joint": 0.0,
-            "left_inner_finger_joint": 0.0,
+            # "right_inner_finger_knuckle_joint": 0.0,
+            # "left_outer_finger_joint": 0.0,
+            # "left_inner_finger_knuckle_joint": 0.0,
+            # "left_inner_finger_joint": 0.0,
             # "left_inner_knuckle_joint": 0.0,            
         },
     ),
@@ -120,44 +121,29 @@ UR10e_gripper_CFG = ArticulationCfg(
             stiffness=800.0,
             damping=40.0,
         ),
-        # "shoulder": ImplicitActuatorCfg(
-        #     joint_names_expr=["shoulder_pan_joint", "shoulder_lift_joint"],
-        #     velocity_limit_sim=120.0,
-        #     effort_limit_sim=330.0,
-        #     stiffness=3271.4917,
-        #     damping=13.08597,
-        # ),
-        # "elbow": ImplicitActuatorCfg(
-        #     joint_names_expr=["elbow_joint"],
-        #     velocity_limit_sim=180.0,
-        #     effort_limit_sim=87.0,
-        #     stiffness=3271.4917,
-        #     damping=13.08597,
-        # ),
-        # "wrist": ImplicitActuatorCfg(
-        #     joint_names_expr=["wrist_1_joint", "wrist_2_joint", "wrist_3_joint"],
-        #     velocity_limit_sim=180.0,
-        #     effort_limit_sim=87.0,
-        #     stiffness=1268.18604,
-        #     damping=5.07,
-        # ),
         "gripper": ImplicitActuatorCfg(
             joint_names_expr=["finger_joint", "right_outer_knuckle_joint"],
             velocity_limit_sim=80.0,
             effort_limit_sim=2.0,
-            stiffness=0.0,
-            damping=5000,
+            stiffness=2e3,
+            damping=1e2,
         ),
-        "inner_finger": ImplicitActuatorCfg(
-            joint_names_expr=["right_inner_finger_joint", "left_inner_finger_joint", "right_inner_finger_knuckle_joint", 
-                              "left_inner_finger_knuckle_joint", "right_outer_finger_joint", "left_outer_finger_joint"],
-            velocity_limit_sim=0.0,
-            effort_limit_sim=0.0,
-            stiffness=0.0,
-            damping=0.0,
-        ),
+        # "inner_finger": ImplicitActuatorCfg(
+        #     joint_names_expr=["right_inner_finger_joint", "left_inner_finger_joint", "right_inner_finger_knuckle_joint", 
+        #                       "left_inner_finger_knuckle_joint", "right_outer_finger_joint", "left_outer_finger_joint"],
+        #     velocity_limit_sim=0.0,
+        #     effort_limit_sim=0.0,
+        #     stiffness=0.0,
+        #     damping=0.0,
+        # ),
     },
 )
+
+UR10e_gripper_HIGH_PD_CFG = UR10e_gripper_CFG.copy()
+UR10e_gripper_HIGH_PD_CFG.spawn.rigid_props.disable_gravity = True
+UR10e_gripper_HIGH_PD_CFG.actuators["arm"].stiffness = 400.0
+UR10e_gripper_HIGH_PD_CFG.actuators["arm"].damping = 80.0
+
 
 UR10_gripper_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(

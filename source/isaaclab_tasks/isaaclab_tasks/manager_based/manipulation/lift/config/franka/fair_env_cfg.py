@@ -21,7 +21,7 @@ from isaacsim.core.utils.rotations import euler_angles_to_quat
 # Pre-defined configs
 ##
 from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
-from isaaclab_assets import FRANKA_PANDA_CFG, UR10e_gripper_CFG  # isort: skip
+from isaaclab_assets import FRANKA_PANDA_CFG, UR10e_CFG, UR10e_gripper_HIGH_PD_CFG  # isort: skip
 
 assets_folder = "/home/matthewstory/Desktop/FAIR_RL_Stage/"
 
@@ -107,7 +107,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
         super().__post_init__()
 
         # Set UR10 as robot
-        self.scene.robot = UR10e_gripper_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        self.scene.robot = UR10e_gripper_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
         # Set actions for the specific robot type (UR10)
         self.actions.arm_action = mdp.JointPositionActionCfg(
@@ -118,9 +118,9 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
         )
         self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
             asset_name="robot",
-            joint_names=["finger_joint", "right_outer_knuckle_joint"],
-            open_command_expr={"finger_joint": 0.35, "right_outer_knuckle_joint": -0.35},
-            close_command_expr={"finger_joint": 0.55, "right_outer_knuckle_joint": -0.55},
+            joint_names=["finger_joint"],
+            open_command_expr={"finger_joint": 0.35},
+            close_command_expr={"finger_joint": 0.55},
         )
         # Set the body name for the end effector
         self.commands.object_pose.body_name = "gripper_base_link"

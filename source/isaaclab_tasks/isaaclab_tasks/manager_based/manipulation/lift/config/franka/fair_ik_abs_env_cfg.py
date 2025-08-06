@@ -76,7 +76,7 @@ class UR10PickPartEnvCfg(fair_env_cfg.UR10PickPartEnvCfg):
             body_name="gripper_base_link",
             # body_name="ee_link",
             controller=DifferentialIKControllerCfg(command_type="pose", use_relative_mode=False, ik_method="dls"),
-            body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.05, -0.0, 0.05]),
+            body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.045, -0.0, 0.0]),
         )
 
 @configclass

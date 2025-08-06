@@ -120,7 +120,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
             asset_name="robot",
             joint_names=["finger_joint"],
             open_command_expr={"finger_joint": 0.2},
-            close_command_expr={"finger_joint": 0.45},
+            close_command_expr={"finger_joint": 0.55},
         )
         # Set the body name for the end effector
         self.commands.object_pose.body_name = "gripper_base_link"
@@ -130,8 +130,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
         # Set Main Shell as object
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.0, 0.1], 
-                                                      rot=rotation),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.0, 0.1]),
             spawn=UsdFileCfg(
                 usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell_v2.usd",
                 # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
@@ -149,9 +148,9 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
         )
 
         # Listens to the required transforms
-        # marker_cfg = FRAME_MARKER_CFG.copy()
-        marker_cfg = RED_ARROW_X_MARKER_CFG.copy()
-        # marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
+        marker_cfg = FRAME_MARKER_CFG.copy()
+        # marker_cfg = RED_ARROW_X_MARKER_CFG.copy()
+        marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
         marker_cfg.prim_path = "/Visuals/FrameTransformer"
 
         # Defines where the end effector is
@@ -164,7 +163,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
                     prim_path="{ENV_REGEX_NS}/Robot/gripper/Robotiq_2F_85_edit/Robotiq_2F_85/gripper_base_link",
                     name="end_effector",
                     offset=OffsetCfg(
-                        pos=[0.1, 0.0, 0.0],
+                        pos=[0.045, 0.0, 0.0],
                         # rot=rotation
                     ),
                 ),

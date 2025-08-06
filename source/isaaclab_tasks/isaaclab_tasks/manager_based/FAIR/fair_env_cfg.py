@@ -158,7 +158,7 @@ class EventCfg:
         # func=mdp.reset_root_state_with_random_orientation,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.1, 0.2), "y": (-0.2, 0.2), "z": (0.0, 0.0)},
+            "pose_range": {"x": (-0.1, 0.2), "y": (-0.2, 0.2), "z": (0.0, 0.0), "yaw": (-np.pi, np.pi)},
             "velocity_range": {},
             "asset_cfg": SceneEntityCfg("object", body_names="Object"),
         },
@@ -204,6 +204,8 @@ class TerminationsCfg:
     object_dropping = DoneTerm(
         func=mdp.root_height_below_minimum, params={"minimum_height": -0.05, "asset_cfg": SceneEntityCfg("object")}
     )
+
+    success = DoneTerm(func=mdp.object_reached_goal_pick)
 
 
 @configclass
@@ -252,5 +254,5 @@ class FAIREnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.bounce_threshold_velocity = 0.01
         self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 1024 * 1024 * 4
          # Resolves PhysX issue
-        self.sim.physx.gpu_total_aggregate_pairs_capacity = 25000
+        self.sim.physx.gpu_total_aggregate_pairs_capacity = 29000
         self.sim.physx.friction_correlation_distance = 0.00625

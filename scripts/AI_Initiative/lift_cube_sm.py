@@ -55,7 +55,7 @@ from isaaclab_tasks.manager_based.FAIR.fair_env_cfg import FAIREnvCfg
 from isaaclab_tasks.utils.parse_cfg import parse_env_cfg
 from isaaclab.utils.math import subtract_frame_transforms
 
-from isaacsim.core.utils.rotations import euler_angles_to_quat
+from isaacsim.core.utils.rotations import euler_angles_to_quat, quat_to_euler_angles
 # initialize warp
 wp.init()
 
@@ -104,6 +104,7 @@ def infer_state_machine(
     gripper_state: wp.array(dtype=float),
     offset: wp.array(dtype=wp.transform),
     position_threshold: float,
+    pick_offset: wp.array(dtype=wp.transform),
 ):
     # retrieve thread id
     tid = wp.tid()
@@ -132,7 +133,7 @@ def infer_state_machine(
                 sm_state[tid] = PickSmState.APPROACH_OBJECT
                 sm_wait_time[tid] = 0.0
     elif state == PickSmState.APPROACH_OBJECT:
-        des_ee_pose[tid] = object_pose[tid]
+        des_ee_pose[tid] = wp.transform_multiply(pick_offset[tid], object_pose[tid])
         gripper_state[tid] = GripperState.OPEN
         if distance_below_threshold(
             wp.transform_get_translation(ee_pose[tid]),
@@ -144,7 +145,7 @@ def infer_state_machine(
                 sm_state[tid] = PickSmState.GRASP_OBJECT
                 sm_wait_time[tid] = 0.0
     elif state == PickSmState.GRASP_OBJECT:
-        des_ee_pose[tid] = object_pose[tid]
+        des_ee_pose[tid] = wp.transform_multiply(pick_offset[tid], object_pose[tid])
         gripper_state[tid] = GripperState.CLOSE
         # wait for a while
         if sm_wait_time[tid] >= PickSmWaitTime.GRASP_OBJECT:
@@ -152,7 +153,7 @@ def infer_state_machine(
             sm_state[tid] = PickSmState.LIFT_OBJECT
             sm_wait_time[tid] = 0.0
     elif state == PickSmState.LIFT_OBJECT:
-        des_ee_pose[tid] = des_object_pose[tid]
+        des_ee_pose[tid] = wp.transform_multiply(pick_offset[tid], des_object_pose[tid])
         gripper_state[tid] = GripperState.CLOSE
         if distance_below_threshold(
             wp.transform_get_translation(ee_pose[tid]),
@@ -182,7 +183,7 @@ class PickAndLiftSm:
     5. LIFT_OBJECT: The robot lifts the object to the desired pose. This is the final state.
     """
 
-    def __init__(self, dt: float, num_envs: int, device: torch.device | str = "cpu", position_threshold=0.01):
+    def __init__(self, dt: float, num_envs: int, device: torch.device | str = "cpu", position_threshold=0.1):
         """Initialize the state machine.
 
         Args:
@@ -206,8 +207,16 @@ class PickAndLiftSm:
 
         # approach above object offset
         self.offset = torch.zeros((self.num_envs, 7), device=self.device)
-        self.offset[:, 2] = 0.1
+        self.offset[:, 0] = 0.02  # x offset
+        self.offset[:, 2] = 0.2  # z offset
         self.offset[:, -1] = 1.0  # warp expects quaternion as (x, y, z, w)
+
+        # pick object offset
+        self.pick_offset = torch.zeros((self.num_envs, 7), device=self.device)
+        self.pick_offset[:, 0] = 0.02  # x offset
+        self.pick_offset[:, 2] = 0.1  # z offset
+        self.pick_offset[:, -1] = 1.0  # warp expects quaternion as (x, y, z, w)
+        
 
         # convert to warp
         self.sm_dt_wp = wp.from_torch(self.sm_dt, wp.float32)
@@ -251,6 +260,7 @@ class PickAndLiftSm:
                 self.des_gripper_state_wp,
                 self.offset_wp,
                 self.position_threshold,
+                self.pick_offset,
             ],
             device=self.device,
         )
@@ -313,6 +323,10 @@ def main():
             object_position = object_data.root_pos_w - env.unwrapped.scene.env_origins
             object_pos_w = object_data.root_pos_w[:, :3]
             object_rot_w = object_data.root_quat_w
+
+            # np_obj_rot = object_rot_w.cpu().numpy()
+            # np_obj_rot_degrees = quat_to_euler_angles(np_obj_rot[0], degrees=True)
+            # print(f"Object rotation (degrees): {np_obj_rot_degrees}")
             _, object_rot_b = subtract_frame_transforms(robot_data.root_pos_w, robot_data.root_quat_w, object_pos_w, object_rot_w)
             # -- target object frame
             desired_position = env.unwrapped.command_manager.get_command("object_pose")[..., :3]

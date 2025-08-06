@@ -82,7 +82,6 @@ class FAIRSceneCfg(InteractiveSceneCfg):
         spawn=UsdFileCfg(usd_path="/home/matthewstory/Desktop/FAIR_RL_Stage/FAIR_RL_Stage.usd"),
     )
     
-    
     # plane
     plane = AssetBaseCfg(
         prim_path="/World/GroundPlane",
@@ -159,7 +158,7 @@ class EventCfg:
         # func=mdp.reset_root_state_with_random_orientation,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.1, 0.1), "y": (-0.2, 0.2), "z": (0.0, 0.0)},
+            "pose_range": {"x": (-0.1, 0.2), "y": (-0.2, 0.2), "z": (0.0, 0.0)},
             "velocity_range": {},
             "asset_cfg": SceneEntityCfg("object", body_names="Object"),
         },

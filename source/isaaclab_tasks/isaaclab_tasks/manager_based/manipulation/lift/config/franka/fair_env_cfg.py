@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import numpy as np
 
-from isaaclab.assets import RigidObjectCfg
+from isaaclab.assets import RigidObjectCfg, AssetBaseCfg
 from isaaclab.sensors import FrameTransformerCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
 from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
@@ -20,7 +20,7 @@ from isaacsim.core.utils.rotations import euler_angles_to_quat
 ##
 # Pre-defined configs
 ##
-from isaaclab.markers.config import FRAME_MARKER_CFG  # isort: skip
+from isaaclab.markers.config import FRAME_MARKER_CFG, RED_ARROW_X_MARKER_CFG  # isort: skip
 from isaaclab_assets import FRANKA_PANDA_CFG, UR10e_CFG, UR10e_gripper_HIGH_PD_CFG  # isort: skip
 
 assets_folder = "/home/matthewstory/Desktop/FAIR_RL_Stage/"
@@ -51,12 +51,12 @@ class FrankaPickPartEnvCfg(FAIREnvCfg):
         # Set Cube as object
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.0, 0.1], 
-                                                      rot=[1, 0, 0, 0]),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.0, 0.05], 
+                                                      rot=rotation),
             spawn=UsdFileCfg(
-                usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell.usd",
+                usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell_v2.usd",
                 # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
-                scale=(0.001, 0.001, 0.001),
+                # scale=(0.001, 0.001, 0.001),
                 rigid_props=RigidBodyPropertiesCfg(
                     solver_position_iteration_count=16,
                     solver_velocity_iteration_count=1,
@@ -119,8 +119,8 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
         self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
             asset_name="robot",
             joint_names=["finger_joint"],
-            open_command_expr={"finger_joint": 0.35},
-            close_command_expr={"finger_joint": 0.55},
+            open_command_expr={"finger_joint": 0.2},
+            close_command_expr={"finger_joint": 0.45},
         )
         # Set the body name for the end effector
         self.commands.object_pose.body_name = "gripper_base_link"
@@ -133,9 +133,9 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
             init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.0, 0.1], 
                                                       rot=rotation),
             spawn=UsdFileCfg(
-                usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell.usd",
+                usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell_v2.usd",
                 # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
-                scale=(0.001, 0.001, 0.001),
+                # scale=(0.001, 0.001, 0.001),
                 rigid_props=RigidBodyPropertiesCfg(
                     solver_position_iteration_count=16,
                     solver_velocity_iteration_count=1,
@@ -149,9 +149,12 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
         )
 
         # Listens to the required transforms
-        marker_cfg = FRAME_MARKER_CFG.copy()
-        marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
+        # marker_cfg = FRAME_MARKER_CFG.copy()
+        marker_cfg = RED_ARROW_X_MARKER_CFG.copy()
+        # marker_cfg.markers["frame"].scale = (0.1, 0.1, 0.1)
         marker_cfg.prim_path = "/Visuals/FrameTransformer"
+
+        # Defines where the end effector is
         self.scene.ee_frame = FrameTransformerCfg(
             prim_path="{ENV_REGEX_NS}/Robot/base_link",
             debug_vis=False,
@@ -161,7 +164,8 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
                     prim_path="{ENV_REGEX_NS}/Robot/gripper/Robotiq_2F_85_edit/Robotiq_2F_85/gripper_base_link",
                     name="end_effector",
                     offset=OffsetCfg(
-                        pos=[0.0, 0.0, 0.1034],
+                        pos=[0.1, 0.0, 0.0],
+                        # rot=rotation
                     ),
                 ),
             ],

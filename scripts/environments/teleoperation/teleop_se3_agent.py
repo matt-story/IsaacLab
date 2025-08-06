@@ -125,6 +125,12 @@ def main():
         env_cfg.commands.object_pose.resampling_time_range = (1.0e9, 1.0e9)
         # add termination condition for reaching the goal otherwise the environment won't reset
         env_cfg.terminations.object_reached_goal = DoneTerm(func=mdp.object_reached_goal)
+    
+    if "Pick" in args_cli.task:
+        # set the resampling time range to large number to avoid resampling
+        env_cfg.commands.object_pose.resampling_time_range = (1.0e9, 1.0e9)
+        # add termination condition for reaching the goal otherwise the environment won't reset
+        env_cfg.terminations.object_reached_goal = DoneTerm(func=mdp.object_reached_goal_pick)
     # create environment
     env = gym.make(args_cli.task, cfg=env_cfg).unwrapped
     # check environment name (for reach , we don't allow the gripper)

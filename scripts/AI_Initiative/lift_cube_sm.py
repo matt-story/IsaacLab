@@ -27,6 +27,8 @@ parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
+
+parser.add_argument("--task_name", type=str, default="FAIR-Pick-Part-UR10-IK-Abs-v0", help="Robot type to use.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -165,7 +167,6 @@ def infer_state_machine(
     # increment wait time
     sm_wait_time[tid] = sm_wait_time[tid] + dt[tid]
 
-
 class PickAndLiftSm:
     """A simple state machine in a robot's task space to pick and lift an object.
 
@@ -263,13 +264,16 @@ class PickAndLiftSm:
 def main():
     # parse configuration
     env_cfg: FAIREnvCfg = parse_env_cfg(
-        "FAIR-Pick-Part-UR10-IK-Abs-v0",
+        task_name=args_cli.task_name,   
         device=args_cli.device,
         num_envs=args_cli.num_envs,
         use_fabric=not args_cli.disable_fabric,
     )
+        # "FAIR-Pick-Part-UR10-IK-Abs-v0",
+        # "FAIR-Pick-Part-Franka-IK-Abs-v0",
+    task_name = args_cli.task_name
     # create environment
-    env = gym.make("FAIR-Pick-Part-UR10-IK-Abs-v0", cfg=env_cfg)
+    env = gym.make(task_name, cfg=env_cfg)
     # reset environment at start
     env.reset()
 
@@ -278,11 +282,14 @@ def main():
     actions[:, 3] = 1.0
     # desired object orientation (we only do position control of object)
     desired_orientation = torch.zeros((env.unwrapped.num_envs, 4), device=env.unwrapped.device)
-    des_orientation = euler_angles_to_quat(np.array([0, np.pi/2, np.pi]))    
-    desired_orientation[:, 0] = des_orientation[0]
-    desired_orientation[:, 1] = des_orientation[1]
-    desired_orientation[:, 2] = des_orientation[2]
-    desired_orientation[:, 3] = des_orientation[3]
+    if task_name == "FAIR-Pick-Part-UR10-IK-Abs-v0":
+        des_orientation = euler_angles_to_quat(np.array([0, np.pi/2, np.pi]))    
+        desired_orientation[:, 0] = des_orientation[0]
+        desired_orientation[:, 1] = des_orientation[1]
+        desired_orientation[:, 2] = des_orientation[2]
+        desired_orientation[:, 3] = des_orientation[3]
+    elif task_name == "FAIR-Pick-Part-Franka-IK-Abs-v0":
+        desired_orientation[:, 1] = 1.0
 
     # create state machine
     pick_sm = PickAndLiftSm(

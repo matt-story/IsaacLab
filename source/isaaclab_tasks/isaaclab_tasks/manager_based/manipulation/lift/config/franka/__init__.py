@@ -108,7 +108,7 @@ gym.register(
 )
 
 gym.register(
-    id="FAIR-Pick-PartFranka-IK-Rel-v0",
+    id="FAIR-Pick-Part-Franka-IK-Rel-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     kwargs={
         "env_cfg_entry_point": f"{__name__}.fair_ik_rel_env_cfg:FrankaCubeLiftEnvCfg",

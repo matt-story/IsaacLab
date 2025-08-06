@@ -74,8 +74,9 @@ class UR10PickPartEnvCfg(fair_env_cfg.UR10PickPartEnvCfg):
             asset_name="robot",
             joint_names=["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"],
             body_name="gripper_base_link",
+            # body_name="ee_link",
             controller=DifferentialIKControllerCfg(command_type="pose", use_relative_mode=False, ik_method="dls"),
-            body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.0, 0.0, 0.1]),
+            body_offset=DifferentialInverseKinematicsActionCfg.OffsetCfg(pos=[0.05, -0.0, 0.05]),
         )
 
 @configclass

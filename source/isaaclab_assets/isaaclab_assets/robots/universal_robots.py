@@ -133,8 +133,8 @@ UR10e_gripper_CFG = ArticulationCfg(
 
 UR10e_gripper_HIGH_PD_CFG = UR10e_gripper_CFG.copy()
 UR10e_gripper_HIGH_PD_CFG.spawn.rigid_props.disable_gravity = True
-UR10e_gripper_HIGH_PD_CFG.actuators["arm"].stiffness = 400.0
-UR10e_gripper_HIGH_PD_CFG.actuators["arm"].damping = 80.0
+UR10e_gripper_HIGH_PD_CFG.actuators["arm"].stiffness = 400.0    # 400
+UR10e_gripper_HIGH_PD_CFG.actuators["arm"].damping = 80.0      # 80
 
 
 UR10_gripper_CFG = ArticulationCfg(

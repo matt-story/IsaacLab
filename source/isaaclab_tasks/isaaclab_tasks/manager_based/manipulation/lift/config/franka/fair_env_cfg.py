@@ -21,7 +21,7 @@ from isaacsim.core.utils.rotations import euler_angles_to_quat
 # Pre-defined configs
 ##
 from isaaclab.markers.config import FRAME_MARKER_CFG, RED_ARROW_X_MARKER_CFG  # isort: skip
-from isaaclab_assets import FRANKA_PANDA_CFG, UR10e_CFG, UR10e_gripper_HIGH_PD_CFG  # isort: skip
+from isaaclab_assets import FRANKA_PANDA_CFG, UR10e_gripper_CFG, UR10e_gripper_HIGH_PD_CFG  # isort: skip
 
 assets_folder = "/home/matthewstory/Desktop/FAIR_RL_Stage/"
 
@@ -51,8 +51,7 @@ class FrankaPickPartEnvCfg(FAIREnvCfg):
         # Set Cube as object
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.0, 0.05], 
-                                                      rot=rotation),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.0, 0.05]),
             spawn=UsdFileCfg(
                 usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell_v2.usd",
                 # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",

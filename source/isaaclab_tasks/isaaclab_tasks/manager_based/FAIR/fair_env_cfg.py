@@ -230,7 +230,7 @@ class FAIREnvCfg(ManagerBasedRLEnvCfg):
     
 
     # Scene settings
-    scene: FAIRSceneCfg = FAIRSceneCfg(num_envs=4096, env_spacing=2.0)
+    scene: FAIRSceneCfg = FAIRSceneCfg(num_envs=2048, env_spacing=2.0)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()

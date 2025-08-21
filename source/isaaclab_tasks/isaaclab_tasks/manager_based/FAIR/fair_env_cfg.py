@@ -60,7 +60,7 @@ from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdF
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransformerCfg
 
 
-assets_folder = "/home/matthewstory/Desktop/FAIR_RL_Stage/"
+assets_folder = "/home/matthew/Desktop/isaacsim_assets/"
 
 @configclass
 class FAIRSceneCfg(InteractiveSceneCfg):
@@ -79,7 +79,7 @@ class FAIRSceneCfg(InteractiveSceneCfg):
     FAIR_stage = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/FAIR_stage",
         init_state=AssetBaseCfg.InitialStateCfg(pos=[0.0, 0.0, 0.0], rot=[1, 0, 0, 0]),
-        spawn=UsdFileCfg(usd_path="/home/matthewstory/Desktop/FAIR_RL_Stage/FAIR_RL_Stage.usd"),
+        spawn=UsdFileCfg(usd_path= assets_folder + "FAIR_RL_stage.usd"),
     )
     
     # plane
@@ -158,7 +158,7 @@ class EventCfg:
         # func=mdp.reset_root_state_with_random_orientation,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.1, 0.2), "y": (-0.2, 0.2), "z": (0.0, 0.0), "yaw": (-np.pi, np.pi)},
+            "pose_range": {"x": (-0.0, 0.3), "y": (-0.15, 0.1), "z": (0.0, 0.0), "yaw": (0.0,0.0)},
             "velocity_range": {},
             "asset_cfg": SceneEntityCfg("object", body_names="Object"),
         },

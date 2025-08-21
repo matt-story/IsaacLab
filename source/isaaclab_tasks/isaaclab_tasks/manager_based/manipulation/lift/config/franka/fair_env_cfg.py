@@ -23,7 +23,7 @@ from isaacsim.core.utils.rotations import euler_angles_to_quat
 from isaaclab.markers.config import FRAME_MARKER_CFG, RED_ARROW_X_MARKER_CFG  # isort: skip
 from isaaclab_assets import FRANKA_PANDA_CFG, UR10e_gripper_CFG, UR10e_gripper_HIGH_PD_CFG  # isort: skip
 
-assets_folder = "/home/matthewstory/Desktop/FAIR_RL_Stage/"
+assets_folder = "/home/matthew/Desktop/isaacsim_assets/"
 
 @configclass
 class FrankaPickPartEnvCfg(FAIREnvCfg):
@@ -53,7 +53,7 @@ class FrankaPickPartEnvCfg(FAIREnvCfg):
             prim_path="{ENV_REGEX_NS}/Object",
             init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.0, 0.05]),
             spawn=UsdFileCfg(
-                usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell_v2.usd",
+                usd_path=assets_folder + "Collected_AKS_picking/assembly_parts/flashlight_main_shell.usd",
                 # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
                 # scale=(0.001, 0.001, 0.001),
                 rigid_props=RigidBodyPropertiesCfg(
@@ -129,9 +129,10 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
         # Set Main Shell as object
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.0, 0.1]),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.2, 0.1],
+                                                      rot=rotation),
             spawn=UsdFileCfg(
-                usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell_v2.usd",
+                usd_path=assets_folder + "Collected_AKS_picking/assembly_parts/RL_flashlight_main_shell.usd",
                 # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
                 # scale=(0.001, 0.001, 0.001),
                 rigid_props=RigidBodyPropertiesCfg(
@@ -145,7 +146,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
                 semantic_tags=[("class", "main_shell")],
             ),
         )
-
+        
         # Listens to the required transforms
         marker_cfg = FRAME_MARKER_CFG.copy()
         # marker_cfg = RED_ARROW_X_MARKER_CFG.copy()
@@ -163,6 +164,22 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
                     name="end_effector",
                     offset=OffsetCfg(
                         pos=[0.045, 0.0, 0.0],
+                        # rot=rotation
+                    ),
+                ),
+            ],
+        )
+
+        self.scene.grasp_frame = FrameTransformerCfg(
+            prim_path="{ENV_REGEX_NS}/Object/main_shell",
+            debug_vis=False,
+            visualizer_cfg=marker_cfg,
+            target_frames=[
+                FrameTransformerCfg.FrameCfg(
+                    prim_path="{ENV_REGEX_NS}/Object/main_shell/grasp_location",
+                    name="end_effector",
+                    offset=OffsetCfg(
+                        pos=[0.0, 0.0, 0.0],
                         # rot=rotation
                     ),
                 ),

@@ -86,7 +86,7 @@ UR10e_CFG = ArticulationCfg(
 
 UR10e_gripper_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path="/home/matthewstory/Desktop/FAIR_RL_Stage/Collected_UR_flashlight_assembly/ur10e_edit.usd",
+        usd_path="/home/matthew/Desktop/isaacsim_assets/ur10e_edit.usd",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             disable_gravity=False,
             max_depenetration_velocity=5.0,

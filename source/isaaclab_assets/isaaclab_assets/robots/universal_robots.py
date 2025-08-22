@@ -102,7 +102,7 @@ UR10e_gripper_CFG = ArticulationCfg(
             "wrist_2_joint": -1.5708,
             "wrist_3_joint": 0.0,
             "finger_joint": 0.0,
-            "right_outer_knuckle_joint": 0.0,         
+            # "right_outer_knuckle_joint": 0.0,         
         },
     ),
     actuators={

@@ -58,6 +58,7 @@ from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
 from isaaclab.sim import SimulationContext
 from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransformerCfg
+from isaaclab.sensors import CameraCfg
 
 
 assets_folder = "/home/matthew/Desktop/isaacsim_assets/"
@@ -75,6 +76,8 @@ class FAIRSceneCfg(InteractiveSceneCfg):
     ee_frame: FrameTransformerCfg = MISSING
     # target object: will be populated by agent env cfg
     object: RigidObjectCfg | DeformableObjectCfg = MISSING
+
+    # grasp_frame: FrameTransformerCfg = MISSING
 
     FAIR_stage = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/FAIR_stage",
@@ -95,6 +98,23 @@ class FAIRSceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.DomeLightCfg(color=(0.75, 0.75, 0.75), intensity=3000.0),
     )
 
+    # camera = CameraCfg(
+    #     prim_path="{ENV_REGEX_NS}/camera",
+    #     update_period=0,
+    #     height=480,
+    #     width=640,
+    #     data_types=[
+    #         "rgb",
+    #         "semantic_segmentation",
+    #     ],
+    #     colorize_semantic_segmentation=True,
+    #     colorize_instance_id_segmentation=True,
+    #     colorize_instance_segmentation=True,
+    #     spawn=sim_utils.PinholeCameraCfg(
+    #         focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
+    #     ),
+    # )
+
 
 ##
 # MDP settings
@@ -107,7 +127,7 @@ class CommandsCfg:
 
     object_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
-        body_name=MISSING,  # will be set by agent env cfg
+        body_name=MISSING,  # will be set by agent env cfg line 134
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
@@ -158,9 +178,9 @@ class EventCfg:
         # func=mdp.reset_root_state_with_random_orientation,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.0, 0.3), "y": (-0.15, 0.1), "z": (0.0, 0.0), "yaw": (0.0,0.0)},
+            "pose_range": {"x": (-0.0, 0.3), "y": (-0.15, 0.1), "z": (0.0, 0.0), "yaw": (-np.pi/2,-np.pi/2)},
             "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("object", body_names="Object"),
+            "asset_cfg": SceneEntityCfg("object", body_names="main_shell"),
         },
     )
 
@@ -245,7 +265,7 @@ class FAIREnvCfg(ManagerBasedRLEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 2
-        self.episode_length_s = 5.0
+        self.episode_length_s = 3.0
         # simulation settings
         self.sim.dt = 0.01  # 100Hz
         self.sim.render_interval = self.decimation
@@ -254,5 +274,5 @@ class FAIREnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.bounce_threshold_velocity = 0.01
         self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 1024 * 1024 * 4
          # Resolves PhysX issue
-        self.sim.physx.gpu_total_aggregate_pairs_capacity = 29000
+        self.sim.physx.gpu_total_aggregate_pairs_capacity = 70000
         self.sim.physx.friction_correlation_distance = 0.00625

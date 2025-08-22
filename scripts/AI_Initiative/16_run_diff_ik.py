@@ -24,7 +24,7 @@ from isaaclab.app import AppLauncher
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Tutorial on using the differential IK controller.")
-parser.add_argument("--robot", type=str, default="franka_panda", help="Name of the robot.")
+parser.add_argument("--robot", type=str, default="ur10e", help="Name of the robot.")
 parser.add_argument("--num_envs", type=int, default=128, help="Number of environments to spawn.")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -40,7 +40,7 @@ simulation_app = app_launcher.app
 import torch
 
 import isaaclab.sim as sim_utils
-from isaaclab.assets import AssetBaseCfg, ArticulationCfg
+from isaaclab.assets import AssetBaseCfg, ArticulationCfg, RigidObjectCfg
 from isaaclab.controllers import DifferentialIKController, DifferentialIKControllerCfg
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.markers import VisualizationMarkers
@@ -50,13 +50,14 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.math import subtract_frame_transforms
 from isaaclab.sim import SimulationContext, UsdFileCfg
+from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 
 ##
 # Pre-defined configs
 ##
-from isaaclab_assets import UR10e_CFG,FRANKA_PANDA_HIGH_PD_CFG, UR10_CFG, UR10e_gripper_CFG  # isort:skip
+from isaaclab_assets import UR10e_CFG,FRANKA_PANDA_HIGH_PD_CFG, UR10_CFG, UR10e_gripper_HIGH_PD_CFG  # isort:skip
 
-assets_folder = "/home/matthewstory/Desktop/FAIR_RL_Stage/"
+assets_folder = "/home/matthew/Desktop/isaacsim_assets/"
 
 @configclass
 class TableTopSceneCfg(InteractiveSceneCfg):
@@ -66,7 +67,7 @@ class TableTopSceneCfg(InteractiveSceneCfg):
     ground = AssetBaseCfg(
         prim_path="/World/defaultGroundPlane",
         spawn=sim_utils.GroundPlaneCfg(),
-        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, -0.83)),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=(0.0, 0.0, -0.79)),
     )
 
     # lights
@@ -74,18 +75,11 @@ class TableTopSceneCfg(InteractiveSceneCfg):
         prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=3000.0, color=(0.75, 0.75, 0.75))
     )
 
-    table_01 = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/Table_01", spawn=UsdFileCfg(usd_path=assets_folder + "table.usd"))
-    table_02 = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/Table_02", spawn=UsdFileCfg(usd_path=assets_folder + "table.usd"))
-    table_01.init_state.pos = (-0.3, 0.4, -0.83)
-    table_02.init_state.pos = (0.52, 0.4, -0.83)
-
-    main_shell = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/flashlight_main_shell",
-                              spawn=UsdFileCfg(usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_main_shell.usd"))
-    main_shell.init_state.pos = (-0.3, 0.7, 0.0)
-
-    kitting_tray = AssetBaseCfg(prim_path="{ENV_REGEX_NS}/flashlight_kitting_tray",
-                                spawn=UsdFileCfg(usd_path=assets_folder + "Collected_UR_flashlight_assembly/assembly_parts/flashlight_kitting_tray.usd"))
-    kitting_tray.init_state.pos = (0.5, 0.7, 0.0)
+    FAIR_stage = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/FAIR_stage",
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.0, 0.0, 0.0], rot=[1, 0, 0, 0]),
+        spawn=UsdFileCfg(usd_path= assets_folder + "FAIR_RL_stage.usd"),
+    )
 
     # articulation
     if args_cli.robot == "franka_panda":
@@ -94,21 +88,52 @@ class TableTopSceneCfg(InteractiveSceneCfg):
     elif args_cli.robot == "ur10":
         robot = UR10_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
     elif args_cli.robot == "ur10e":
-        robot = UR10e_gripper_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
+        robot = UR10e_gripper_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
     else:
         raise ValueError(f"Robot {args_cli.robot} is not supported. Valid: franka_panda, ur10, ur10e")
     
-    robot.init_state.pos = (0.0, 0.0, 0.0)
+    robot.init_state=ArticulationCfg.InitialStateCfg(
+        joint_pos={
+            "shoulder_pan_joint": 0.0,
+            "shoulder_lift_joint": -1.5708,
+            "elbow_joint": 1.5708,
+            "wrist_1_joint": -1.5708,
+            "wrist_2_joint": -1.5708,
+            "wrist_3_joint": 0.0,
+            "finger_joint": 0.0,
+            # "right_outer_knuckle_joint": 0.0,         
+        },
+    )
+
+    object = RigidObjectCfg(
+            prim_path="{ENV_REGEX_NS}/Object",
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.2, 0.1]),
+            spawn=UsdFileCfg(
+                usd_path=assets_folder + "Collected_AKS_picking/assembly_parts/RL_flashlight_main_shell.usd",
+                # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
+                # scale=(0.001, 0.001, 0.001),
+                rigid_props=RigidBodyPropertiesCfg(
+                    solver_position_iteration_count=16,
+                    solver_velocity_iteration_count=1,
+                    max_angular_velocity=1000.0,
+                    max_linear_velocity=1000.0,
+                    max_depenetration_velocity=5.0,
+                    disable_gravity=False,
+                ),
+                semantic_tags=[("class", "main_shell")],
+            ),
+        )
 
 def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     """Runs the simulation loop."""
     # Extract scene entities
     # note: we only do this here for readability.
     robot = scene["robot"]
+    object = scene["object"]
 
     # Create controller
     diff_ik_cfg = DifferentialIKControllerCfg(command_type="pose", use_relative_mode=False, ik_method="dls")
-    diff_ik_controller = DifferentialIKController(diff_ik_cfg, num_envs=scene.num_envs, device=sim.device)
+    diff_ik_controller = DifferentialIKController(diff_ik_cfg, num_envs=scene.num_envs, device=sim.device)   
 
     # Markers
     frame_marker_cfg = FRAME_MARKER_CFG.copy()

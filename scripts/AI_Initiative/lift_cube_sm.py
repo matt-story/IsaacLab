@@ -48,7 +48,7 @@ import warp as wp
 import numpy as np
 
 from isaaclab.assets.rigid_object.rigid_object_data import RigidObjectData
-
+from isaaclab.assets import AssetBase
 import isaaclab_tasks  # noqa: F401
 from isaaclab_tasks.manager_based.manipulation.lift.lift_env_cfg import LiftEnvCfg
 from isaaclab_tasks.manager_based.FAIR.fair_env_cfg import FAIREnvCfg
@@ -323,7 +323,11 @@ def main():
             object_position = object_data.root_pos_w - env.unwrapped.scene.env_origins
             object_pos_w = object_data.root_pos_w[:, :3]
             object_rot_w = object_data.root_quat_w
-
+            # -- grasping frame
+            # grasp_data = env.unwrapped.scene["grasp_frame"].data
+            # grasp_position = grasp_data.root_pos_w - env.unwrapped.scene.env_origins
+            # grasp_pos_w = grasp_data.root_pos_w[:, :3]
+            # grasp_rot_w = grasp_data.root_quat_w
             # np_obj_rot = object_rot_w.cpu().numpy()
             # np_obj_rot_degrees = quat_to_euler_angles(np_obj_rot[0], degrees=True)
             # print(f"Object rotation (degrees): {np_obj_rot_degrees}")

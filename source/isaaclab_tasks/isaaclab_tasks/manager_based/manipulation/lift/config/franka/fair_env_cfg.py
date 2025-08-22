@@ -11,6 +11,7 @@ from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from isaaclab.sim.spawners.from_files.from_files_cfg import UsdFileCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
+from isaaclab.controllers import DifferentialIKControllerCfg
 
 from isaaclab_tasks.manager_based.manipulation.lift import mdp
 from isaaclab_tasks.manager_based.FAIR.fair_env_cfg import FAIREnvCfg
@@ -115,11 +116,19 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
             scale=0.5, 
             use_default_offset=True,
         )
+        diff_ik_cfg = DifferentialIKControllerCfg(command_type="pose", use_relative_mode=False, ik_method="dls")
+        # self.actions.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
+        #     asset_name="robot",
+        #     joint_names=["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"],
+        #     body_name="base_link",
+        #     scale=0.5,
+        #     controller=diff_ik_cfg
+        # )
         self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
             asset_name="robot",
             joint_names=["finger_joint"],
             open_command_expr={"finger_joint": 0.2},
-            close_command_expr={"finger_joint": 0.55},
+            close_command_expr={"finger_joint": 0.5},
         )
         # Set the body name for the end effector
         self.commands.object_pose.body_name = "gripper_base_link"
@@ -129,8 +138,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
         # Set Main Shell as object
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.2, 0.1],
-                                                      rot=rotation),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.2, 0.1]),
             spawn=UsdFileCfg(
                 usd_path=assets_folder + "Collected_AKS_picking/assembly_parts/RL_flashlight_main_shell.usd",
                 # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
@@ -170,18 +178,35 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
             ],
         )
 
-        self.scene.grasp_frame = FrameTransformerCfg(
-            prim_path="{ENV_REGEX_NS}/Object/main_shell",
-            debug_vis=False,
-            visualizer_cfg=marker_cfg,
-            target_frames=[
-                FrameTransformerCfg.FrameCfg(
-                    prim_path="{ENV_REGEX_NS}/Object/main_shell/grasp_location",
-                    name="end_effector",
-                    offset=OffsetCfg(
-                        pos=[0.0, 0.0, 0.0],
-                        # rot=rotation
-                    ),
-                ),
-            ],
-        )
+        grasp_rotation = euler_angles_to_quat(np.array([np.pi/2, np.pi/2, 0.0]))
+        # self.scene.grasp_frame = RigidObjectCfg(
+        #     prim_path="{ENV_REGEX_NS}/Object/main_shell/grab_location",
+        #     init_state=RigidObjectCfg.InitialStateCfg(pos=[0.0, 0.0, 0.0], rot=grasp_rotation),
+        #     spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/UIElements/frame_prim.usd",
+        #     scale=(50.0, 50.0, 50.0),
+        #     rigid_props=RigidBodyPropertiesCfg(
+        #             solver_position_iteration_count=16,
+        #             solver_velocity_iteration_count=1,
+        #             max_angular_velocity=1000.0,
+        #             max_linear_velocity=1000.0,
+        #             max_depenetration_velocity=5.0,
+        #             disable_gravity=False,
+        #         ),
+        #     ),
+        # )
+
+        # self.scene.grasp_frame = FrameTransformerCfg(
+        #     prim_path="{ENV_REGEX_NS}/Object/main_shell",
+        #     debug_vis=False,
+        #     visualizer_cfg=marker_cfg,
+        #     target_frames=[
+        #         FrameTransformerCfg.FrameCfg(
+        #             prim_path="{ENV_REGEX_NS}/Object/main_shell/grasp_location",
+        #             name="grasp_frame",
+        #             offset=OffsetCfg(
+        #                 pos=[0.0, 0.0, 0.0],
+        #                 rot=grasp_rotation
+        #             ),
+        #         ),
+        #     ],
+        # )

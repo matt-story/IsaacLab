@@ -21,7 +21,7 @@ from isaacsim.core.utils.rotations import euler_angles_to_quat
 ##
 # Pre-defined configs
 ##
-from isaaclab.markers.config import FRAME_MARKER_CFG, RED_ARROW_X_MARKER_CFG  # isort: skip
+from isaaclab.markers.config import FRAME_MARKER_CFG # isort: skip
 from isaaclab_assets import FRANKA_PANDA_CFG, UR10e_gripper_CFG, UR10e_gripper_HIGH_PD_CFG  # isort: skip
 
 assets_folder = "/home/matthew/Desktop/isaacsim_assets/"
@@ -178,35 +178,32 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
             ],
         )
 
-        grasp_rotation = euler_angles_to_quat(np.array([np.pi/2, np.pi/2, 0.0]))
-        # self.scene.grasp_frame = RigidObjectCfg(
-        #     prim_path="{ENV_REGEX_NS}/Object/main_shell/grab_location",
-        #     init_state=RigidObjectCfg.InitialStateCfg(pos=[0.0, 0.0, 0.0], rot=grasp_rotation),
-        #     spawn=UsdFileCfg(usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/UIElements/frame_prim.usd",
-        #     scale=(50.0, 50.0, 50.0),
-        #     rigid_props=RigidBodyPropertiesCfg(
-        #             solver_position_iteration_count=16,
-        #             solver_velocity_iteration_count=1,
-        #             max_angular_velocity=1000.0,
-        #             max_linear_velocity=1000.0,
-        #             max_depenetration_velocity=5.0,
-        #             disable_gravity=False,
-        #         ),
-        #     ),
-        # )
 
-        # self.scene.grasp_frame = FrameTransformerCfg(
-        #     prim_path="{ENV_REGEX_NS}/Object/main_shell",
-        #     debug_vis=False,
-        #     visualizer_cfg=marker_cfg,
-        #     target_frames=[
-        #         FrameTransformerCfg.FrameCfg(
-        #             prim_path="{ENV_REGEX_NS}/Object/main_shell/grasp_location",
-        #             name="grasp_frame",
-        #             offset=OffsetCfg(
-        #                 pos=[0.0, 0.0, 0.0],
-        #                 rot=grasp_rotation
-        #             ),
-        #         ),
-        #     ],
-        # )
+        grasp_rotation = euler_angles_to_quat(np.array([0.0, np.pi/2, -np.pi/2]))
+        self.scene.grasp_frame = FrameTransformerCfg(
+            prim_path="{ENV_REGEX_NS}/Robot/gripper/Robotiq_2F_85_edit/Robotiq_2F_85/gripper_base_link",
+            debug_vis=False,
+            visualizer_cfg=marker_cfg.replace(prim_path="/Visuals/GraspLocationFrameTransformer"),
+            target_frames=[
+                FrameTransformerCfg.FrameCfg(
+                    prim_path="{ENV_REGEX_NS}/Object/main_shell",
+                    name="grasp_frame",
+                    offset=OffsetCfg(
+                        pos=(0.0, 0.05, 0.0),
+                        rot=grasp_rotation,
+                    ),
+                ),
+            ],
+        )
+
+  
+    # tiled_camera_cfg: TiledCameraCfg = TiledCameraCfg(
+    # prim_path="/World/envs/env_.*/Camera",
+    # offset=TiledCameraCfg.OffsetCfg(pos=tuple(pos_offset.tolist()), rot=tuple(rot_offset[0].tolist()), convention="world"),
+    # data_types=["rgb", "semantic_segmentation"],
+    # spawn=sim_utils.PinholeCameraCfg(
+    #     focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 20.0)
+    # ),
+    # width=80,
+    # height=80,
+    # )

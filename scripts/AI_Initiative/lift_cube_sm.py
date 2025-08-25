@@ -305,7 +305,7 @@ def main():
     pick_sm = PickAndLiftSm(
         env_cfg.sim.dt * env_cfg.decimation, env.unwrapped.num_envs, env.unwrapped.device, position_threshold=0.01
     )
-
+    successes = 0
     while simulation_app.is_running():
         # run everything in inference mode
         with torch.inference_mode():
@@ -324,10 +324,9 @@ def main():
             object_pos_w = object_data.root_pos_w[:, :3]
             object_rot_w = object_data.root_quat_w
             # -- grasping frame
-            # grasp_data = env.unwrapped.scene["grasp_frame"].data
-            # grasp_position = grasp_data.root_pos_w - env.unwrapped.scene.env_origins
-            # grasp_pos_w = grasp_data.root_pos_w[:, :3]
-            # grasp_rot_w = grasp_data.root_quat_w
+            grasp_data = env.unwrapped.scene["grasp_frame"].data
+            grasp_position = grasp_data.target_pos_w[..., 0, :].clone() - env.unwrapped.scene.env_origins
+            grasp_orientation = grasp_data.target_quat_w[..., 0, :].clone()
             # np_obj_rot = object_rot_w.cpu().numpy()
             # np_obj_rot_degrees = quat_to_euler_angles(np_obj_rot[0], degrees=True)
             # print(f"Object rotation (degrees): {np_obj_rot_degrees}")
@@ -339,13 +338,15 @@ def main():
             # advance state machine
             actions = pick_sm.compute(
                 torch.cat([tcp_rest_position, tcp_rest_orientation], dim=-1),
-                torch.cat([object_position, desired_orientation], dim=-1),         # TODO Change to object orientation
+                torch.cat([grasp_position, grasp_orientation], dim=-1),         # TODO Change to object orientation
                 torch.cat([desired_position, desired_orientation], dim=-1),
             )
 
+            
             # reset state machine
             if dones.any():
                 pick_sm.reset_idx(dones.nonzero(as_tuple=False).squeeze(-1))
+
 
     # close the environment
     env.close()

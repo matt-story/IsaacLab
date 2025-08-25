@@ -51,6 +51,7 @@ from isaaclab.managers import SceneEntityCfg
 from isaaclab.managers import RewardTermCfg as RewTerm
 from isaaclab.managers import TerminationTermCfg as DoneTerm
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
+from isaaclab.managers import RecorderTermCfg as RecordTerm
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, DeformableObjectCfg, RigidObjectCfg
@@ -77,7 +78,7 @@ class FAIRSceneCfg(InteractiveSceneCfg):
     # target object: will be populated by agent env cfg
     object: RigidObjectCfg | DeformableObjectCfg = MISSING
 
-    # grasp_frame: FrameTransformerCfg = MISSING
+    grasp_frame: FrameTransformerCfg = MISSING
 
     FAIR_stage = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/FAIR_stage",
@@ -156,11 +157,12 @@ class ObservationsCfg:
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
         object_position = ObsTerm(func=mdp.object_position_in_robot_root_frame)
+        object_rotation = ObsTerm(func=mdp.object_rotation_in_robot_root_frame)
         target_object_position = ObsTerm(func=mdp.generated_commands, params={"command_name": "object_pose"})
         actions = ObsTerm(func=mdp.last_action)
 
         def __post_init__(self):
-            self.enable_corruption = True
+            self.enable_corruption = False
             self.concatenate_terms = True
 
     # observation groups
@@ -178,9 +180,19 @@ class EventCfg:
         # func=mdp.reset_root_state_with_random_orientation,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.0, 0.3), "y": (-0.15, 0.1), "z": (0.0, 0.0), "yaw": (-np.pi/2,-np.pi/2)},
+            "pose_range": {"x": (-0.0, 0.3), "y": (-0.15, 0.1), "z": (0.0, 0.0), "yaw": (-np.pi, np.pi)},
             "velocity_range": {},
             "asset_cfg": SceneEntityCfg("object", body_names="main_shell"),
+        },
+    )
+
+    change_offset =  EventTerm(
+        func=mdp.reset_offset_state_uniform,
+        mode="reset",
+        params={
+            "pose_range": {"x": (-0.0, 0.), "y": (0.0, 0.3), "z": (0.0, 0.0)},
+            "velocity_range": {},
+            "asset_cfg": SceneEntityCfg("grasp_frame", body_names="grasp_frame"),
         },
     )
 
@@ -192,7 +204,7 @@ class RewardsCfg:
     reaching_object = RewTerm(func=mdp.object_ee_distance, params={"std": 0.1}, weight=1.0)
 
     lifting_object = RewTerm(func=mdp.object_is_lifted, params={"minimal_height": 0.04}, weight=15.0)
-
+    
     object_goal_tracking = RewTerm(
         func=mdp.object_goal_distance,
         params={"std": 0.3, "minimal_height": 0.04, "command_name": "object_pose"},
@@ -225,7 +237,7 @@ class TerminationsCfg:
         func=mdp.root_height_below_minimum, params={"minimum_height": -0.05, "asset_cfg": SceneEntityCfg("object")}
     )
 
-    success = DoneTerm(func=mdp.object_reached_goal_pick)
+    # success = DoneTerm(func=mdp.object_reached_goal_pick, params={"threshold": 0.05})
 
 
 @configclass
@@ -274,5 +286,5 @@ class FAIREnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physx.bounce_threshold_velocity = 0.01
         self.sim.physx.gpu_found_lost_aggregate_pairs_capacity = 1024 * 1024 * 4
          # Resolves PhysX issue
-        self.sim.physx.gpu_total_aggregate_pairs_capacity = 70000
+        self.sim.physx.gpu_total_aggregate_pairs_capacity = 140000
         self.sim.physx.friction_correlation_distance = 0.00625

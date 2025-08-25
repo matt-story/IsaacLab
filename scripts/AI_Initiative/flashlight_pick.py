@@ -39,6 +39,7 @@ simulation_app = app_launcher.app
 
 import torch
 import numpy as np
+import math
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import AssetBaseCfg, ArticulationCfg, RigidObjectCfg
@@ -49,13 +50,17 @@ from isaaclab.markers.config import FRAME_MARKER_CFG
 from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
 from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
-from isaaclab.utils.math import subtract_frame_transforms, quat_from_euler_xyz
+from isaaclab.utils.math import subtract_frame_transforms, quat_from_euler_xyz, quat_apply
 from isaaclab.sim import SimulationContext, UsdFileCfg
 from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
+from isaacsim.core.utils.rotations import euler_angles_to_quat
+from isaaclab.sensors import FrameTransformerCfg
+from isaaclab.sensors.frame_transformer.frame_transformer_cfg import OffsetCfg
 
 from isaacsim.core.prims import SingleXFormPrim
 import isaacsim.core.utils.prims as prim_utils
 from isaaclab.sensors import CameraCfg, TiledCameraCfg, TiledCamera
+from isaaclab.assets.rigid_object.rigid_object_data import RigidObjectData
 
 ##
 # Pre-defined configs
@@ -128,17 +133,22 @@ class FAIRENVConfig(InteractiveSceneCfg):
                 semantic_tags=[("class", "main_shell")],
             ),
         )
+    
 
-    tiled_camera_cfg: TiledCameraCfg = TiledCameraCfg(
-    prim_path="/World/envs/env_.*/Camera",
-    offset=TiledCameraCfg.OffsetCfg(pos=(0.4, 0.0, 1.0), rot=(1.0, 0.0, 0.0, 0.0), convention="world"),
-    data_types=["rgb", "semantic_segmentation"],
-    spawn=sim_utils.PinholeCameraCfg(
-        focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 20.0)
-    ),
-    width=80,
-    height=80,
-    )
+    
+    # rot_offset = quat_from_euler_xyz(torch.zeros(1), torch.zeros(1), torch.tensor(-math.pi / 2))
+    # pos_offset = quat_apply(rot_offset, torch.tensor([0.4, 0.0, 1.0]))
+
+    # tiled_camera_cfg: TiledCameraCfg = TiledCameraCfg(
+    # prim_path="/World/envs/env_.*/Camera",
+    # offset=TiledCameraCfg.OffsetCfg(pos=tuple(pos_offset.tolist()), rot=tuple(rot_offset[0].tolist()), convention="world"),
+    # data_types=["rgb", "semantic_segmentation"],
+    # spawn=sim_utils.PinholeCameraCfg(
+    #     focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 20.0)
+    # ),
+    # width=80,
+    # height=80,
+    # )
 
     # tiled_camera = TiledCamera(tiled_camera_cfg)
     # data_type = "rgb"
@@ -183,6 +193,7 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene):
     ]
     ee_goals = torch.tensor(ee_goals, device=sim.device)
     print(f"EE Goals: {ee_goals}")
+
     # Track the given command
     current_goal_idx = 0
     # Create buffers to store actions

@@ -186,15 +186,15 @@ class EventCfg:
         },
     )
 
-    change_offset =  EventTerm(
-        func=mdp.reset_offset_state_uniform,
-        mode="reset",
-        params={
-            "pose_range": {"x": (-0.0, 0.), "y": (0.0, 0.3), "z": (0.0, 0.0)},
-            "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("grasp_frame", body_names="grasp_frame"),
-        },
-    )
+    # change_offset =  EventTerm(
+    #     func=mdp.reset_offset_state_uniform,
+    #     mode="reset",
+    #     params={
+    #         "pose_range": {"x": (-0.0, 0.), "y": (0.0, 0.3), "z": (0.0, 0.0)},
+    #         "velocity_range": {},
+    #         "asset_cfg": SceneEntityCfg("grasp_frame", body_names="grasp_frame"),
+    #     },
+    # )
 
 
 @configclass

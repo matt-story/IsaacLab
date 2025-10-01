@@ -327,6 +327,7 @@ def main():
             grasp_data = env.unwrapped.scene["grasp_frame"].data
             grasp_position = grasp_data.target_pos_w[..., 0, :].clone() - env.unwrapped.scene.env_origins
             grasp_orientation = grasp_data.target_quat_w[..., 0, :].clone()
+            # print(f"grasp_position: {grasp_position}")
             # np_obj_rot = object_rot_w.cpu().numpy()
             # np_obj_rot_degrees = quat_to_euler_angles(np_obj_rot[0], degrees=True)
             # print(f"Object rotation (degrees): {np_obj_rot_degrees}")

@@ -82,14 +82,14 @@ class FAIRSceneCfg(InteractiveSceneCfg):
 
     FAIR_stage = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/FAIR_stage",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.0, 0.0, 0.0], rot=[1, 0, 0, 0]),
-        spawn=UsdFileCfg(usd_path= assets_folder + "FAIR_RL_stage.usd"),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.35, 0.65, -0.195], rot=[1, 0, 0, 0]),
+        spawn=UsdFileCfg(usd_path= assets_folder + "/grasping/picking_bin.usd"),
     )
     
     # plane
     plane = AssetBaseCfg(
         prim_path="/World/GroundPlane",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=[0, 0, -0.79]),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0, 0, -0.185]),
         spawn=GroundPlaneCfg(),
     )
 
@@ -132,7 +132,7 @@ class CommandsCfg:
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.45, 0.45), pos_y=(-0.0, 0.0), pos_z=(0.3, 0.3), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0, 0)
+            pos_x=(0.35, 0.35), pos_y=(0.65, 0.65), pos_z=(0.3, 0.3), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0, 0)
         ),
     )
 
@@ -180,7 +180,7 @@ class EventCfg:
         # func=mdp.reset_root_state_with_random_orientation,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.0, 0.3), "y": (-0.15, 0.1), "z": (0.0, 0.0), "yaw": (-np.pi, np.pi)},
+            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "z": (0.0, 0.0), "yaw": (-0.0, 0.0)},
             "velocity_range": {},
             "asset_cfg": SceneEntityCfg("object", body_names="main_shell"),
         },
@@ -190,9 +190,9 @@ class EventCfg:
     #     func=mdp.reset_offset_state_uniform,
     #     mode="reset",
     #     params={
-    #         "pose_range": {"x": (-0.0, 0.), "y": (0.0, 0.3), "z": (0.0, 0.0)},
+    #         "pose_range": {"x": (-0.0, 0.), "y": (-0.3, 0.3), "z": (0.0, 0.0)},
     #         "velocity_range": {},
-    #         "asset_cfg": SceneEntityCfg("grasp_frame", body_names="grasp_frame"),
+    #         "asset_cfg": SceneEntityCfg("grasp_frame"),
     #     },
     # )
 
@@ -234,7 +234,7 @@ class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
 
     object_dropping = DoneTerm(
-        func=mdp.root_height_below_minimum, params={"minimum_height": -0.05, "asset_cfg": SceneEntityCfg("object")}
+        func=mdp.root_height_below_minimum, params={"minimum_height": -0.2, "asset_cfg": SceneEntityCfg("object")}
     )
 
     # success = DoneTerm(func=mdp.object_reached_goal_pick, params={"threshold": 0.05})

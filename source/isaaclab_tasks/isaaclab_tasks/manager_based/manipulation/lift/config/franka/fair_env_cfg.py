@@ -110,20 +110,20 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
         self.scene.robot = UR10e_gripper_HIGH_PD_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
 
         # Set actions for the specific robot type (UR10)
-        self.actions.arm_action = mdp.JointPositionActionCfg(
-            asset_name="robot", 
-            joint_names=["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"], 
-            scale=0.5, 
-            use_default_offset=True,
-        )
-        diff_ik_cfg = DifferentialIKControllerCfg(command_type="pose", use_relative_mode=False, ik_method="dls")
-        # self.actions.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
-        #     asset_name="robot",
-        #     joint_names=["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"],
-        #     body_name="base_link",
-        #     scale=0.5,
-        #     controller=diff_ik_cfg
+        # self.actions.arm_action = mdp.JointPositionActionCfg(
+        #     asset_name="robot", 
+        #     joint_names=["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"], 
+        #     scale=0.5, 
+        #     use_default_offset=True,
         # )
+        diff_ik_cfg = DifferentialIKControllerCfg(command_type="pose", use_relative_mode=False, ik_method="dls")
+        self.actions.arm_action = mdp.DifferentialInverseKinematicsActionCfg(
+            asset_name="robot",
+            joint_names=["shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"],
+            body_name="base_link",
+            scale=0.5,
+            controller=diff_ik_cfg
+        )
         self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
             asset_name="robot",
             joint_names=["finger_joint"],
@@ -138,9 +138,9 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
         # Set Main Shell as object
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
-            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.2, 0.1]),
+            init_state=RigidObjectCfg.InitialStateCfg(pos=[0.33, 0.7, -0.161]),
             spawn=UsdFileCfg(
-                usd_path=assets_folder + "Collected_AKS_picking/assembly_parts/RL_flashlight_main_shell.usd",
+                usd_path=assets_folder + "Collected_AKS_picking/assembly_parts/flashlight_main_shell.usd",
                 # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
                 # scale=(0.001, 0.001, 0.001),
                 rigid_props=RigidBodyPropertiesCfg(
@@ -180,6 +180,8 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
 
 
         grasp_rotation = euler_angles_to_quat(np.array([0.0, np.pi/2, -np.pi/2]))
+        grasp_position = (0.0, -0.0, 0.0)
+        
         self.scene.grasp_frame = FrameTransformerCfg(
             prim_path="{ENV_REGEX_NS}/Robot/gripper/Robotiq_2F_85_edit/Robotiq_2F_85/gripper_base_link",
             debug_vis=False,
@@ -189,7 +191,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
                     prim_path="{ENV_REGEX_NS}/Object/main_shell",
                     name="grasp_frame",
                     offset=OffsetCfg(
-                        pos=(0.0, 0.05, 0.0),
+                        pos=grasp_position,
                         rot=grasp_rotation,
                     ),
                 ),

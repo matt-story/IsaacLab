@@ -318,7 +318,8 @@ def main():
         # run everything in inference mode
         with torch.inference_mode():
             # step environment
-            dones = env.step(actions)[-2]
+            obs, rew, dones, trunc, info = env.step(actions)
+            # dones = env.step(actions)[-2]
 
             # observations
             # -- end-effector frame
@@ -355,10 +356,11 @@ def main():
                     part_lifted[i] = True
                     success_lifts.append(i)
                 # print(f"Object position: {object_position[i].cpu().numpy()}")
-            
-            
-            
-            
+
+
+            # print(f"Env 0 Obs part pos: {obs['policy'][2]}")
+            print(f"Env 0 Reward: {rew[3].item()}")
+
 
 
             # print(f"Old grasp: {old_grasp} New grasp: {new_grasp}")
@@ -379,11 +381,17 @@ def main():
                 torch.cat([grasp_position, grasp_orientation], dim=-1),         # TODO Change to object orientation
                 torch.cat([desired_position, desired_orientation], dim=-1),
             )
-
             
             # reset state machine
+            if trunc.any():
+                trunc_list = trunc.nonzero(as_tuple=False).squeeze(-1)
+                # print(f"Trunc envs {trunc_list.tolist()}")
+                pick_sm.reset_idx(env_ids=trunc_list)
+            
             if dones.any():
-                pick_sm.reset_idx(dones.nonzero(as_tuple=False).squeeze(-1))
+                done_list = dones.nonzero(as_tuple=False).squeeze(-1)
+                # print(f"Resetting envs {done_list.tolist()}")
+                pick_sm.reset_idx(env_ids=done_list)
 
 
     # close the environment

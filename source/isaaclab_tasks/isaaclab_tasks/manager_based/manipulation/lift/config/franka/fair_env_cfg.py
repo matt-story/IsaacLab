@@ -127,7 +127,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
         self.actions.gripper_action = mdp.BinaryJointPositionActionCfg(
             asset_name="robot",
             joint_names=["finger_joint"],
-            open_command_expr={"finger_joint": 0.2},
+            open_command_expr={"finger_joint": 0.0},
             close_command_expr={"finger_joint": 0.5},
         )
         # Set the body name for the end effector
@@ -135,12 +135,12 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
 
         rotation = euler_angles_to_quat(np.array([0.0, 0.0, -np.pi/2]))
         
-        # Set Main Shell as object
+        # Create part
         self.scene.object = RigidObjectCfg(
             prim_path="{ENV_REGEX_NS}/Object",
             init_state=RigidObjectCfg.InitialStateCfg(pos=[0.33, 0.7, -0.161]),
             spawn=UsdFileCfg(
-                usd_path=assets_folder + "Collected_AKS_picking/assembly_parts/flashlight_main_shell.usd",
+                usd_path=assets_folder + "grasping/flashlight_main_shell_v2.usd",
                 # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
                 # scale=(0.001, 0.001, 0.001),
                 rigid_props=RigidBodyPropertiesCfg(
@@ -151,7 +151,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
                     max_depenetration_velocity=5.0,
                     disable_gravity=False,
                 ),
-                semantic_tags=[("class", "main_shell")],
+                semantic_tags=[("class", "part")],
             ),
         )
         
@@ -171,7 +171,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
                     prim_path="{ENV_REGEX_NS}/Robot/gripper/Robotiq_2F_85_edit/Robotiq_2F_85/gripper_base_link",
                     name="end_effector",
                     offset=OffsetCfg(
-                        pos=[0.045, 0.0, 0.0],
+                        pos=[0.045, -0.0, -0.0],
                         # rot=rotation
                     ),
                 ),
@@ -188,7 +188,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
             visualizer_cfg=marker_cfg.replace(prim_path="/Visuals/GraspLocationFrameTransformer"),
             target_frames=[
                 FrameTransformerCfg.FrameCfg(
-                    prim_path="{ENV_REGEX_NS}/Object/main_shell",
+                    prim_path="{ENV_REGEX_NS}/Object",
                     name="grasp_frame",
                     offset=OffsetCfg(
                         pos=grasp_position,

@@ -911,7 +911,7 @@ def reset_offset_state_uniform(
     env_ids: torch.Tensor,
     pose_range: dict[str, tuple[float, float]],
     velocity_range: dict[str, tuple[float, float]],
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("grasp_frame"),
 ):
     """Reset the asset root state to a random position and velocity uniformly within the given ranges.
 
@@ -929,19 +929,20 @@ def reset_offset_state_uniform(
     # extract the used quantities (to enable type-hinting)
     asset: FrameTransformer = env.scene[asset_cfg.name]
     # get default root state
-    offset = asset.cfg.target_frames[0].offset
+    offset_pos = asset.cfg.source_frame_offset.pos
+    offset_rot = asset.cfg.source_frame_offset.rot
 
     # poses
     range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]]
     ranges = torch.tensor(range_list, device=asset.device)
     rand_samples = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (len(env_ids), 6), device=asset.device)
 
-    positions = offset + env.scene.env_origins[env_ids] + rand_samples[:, 0:3]
-    # orientations_delta = math_utils.quat_from_euler_xyz(rand_samples[:, 3], rand_samples[:, 4], rand_samples[:, 5])
-    # orientations = math_utils.quat_mul(offset[3:7], orientations_delta)
+    positions = offset_pos + env.scene.env_origins[env_ids] + rand_samples[:, 0:3]
+    orientations_delta = math_utils.quat_from_euler_xyz(rand_samples[:, 3], rand_samples[:, 4], rand_samples[:, 5])
+    orientations = math_utils.quat_mul(offset_rot[3:7], orientations_delta)
 
     # set into the physics simulation
-    # asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
+    asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=env_ids)
 
 def reset_root_state_with_random_orientation(
     env: ManagerBasedEnv,

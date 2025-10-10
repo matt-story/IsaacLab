@@ -82,7 +82,7 @@ class FAIRSceneCfg(InteractiveSceneCfg):
 
     FAIR_stage = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/FAIR_stage",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.35, 0.65, -0.195], rot=[1, 0, 0, 0]),
+        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.39309, 0.71435, -0.195], rot=[0.85717, 0, 0, 0.51504]),
         spawn=UsdFileCfg(usd_path= assets_folder + "/grasping/picking_bin.usd"),
     )
     
@@ -182,7 +182,7 @@ class EventCfg:
         params={
             "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "z": (0.0, 0.0), "yaw": (-0.0, 0.0)},
             "velocity_range": {},
-            "asset_cfg": SceneEntityCfg("object", body_names="main_shell"),
+            "asset_cfg": SceneEntityCfg("object", body_names="Object"),
         },
     )
 
@@ -259,10 +259,11 @@ class CurriculumCfg:
 @configclass
 class FAIREnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the FAIR environment."""
-    
+    generated_poses = np.load("/home/matthew/Desktop/grasper_output/grasp_poses.npy")
+    num_envs = len(generated_poses)
 
     # Scene settings
-    scene: FAIRSceneCfg = FAIRSceneCfg(num_envs=2048, env_spacing=2.0)
+    scene: FAIRSceneCfg = FAIRSceneCfg(num_envs=num_envs, env_spacing=2.0)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()

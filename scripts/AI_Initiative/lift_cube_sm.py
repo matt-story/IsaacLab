@@ -207,14 +207,15 @@ class PickAndLiftSm:
 
         # approach above object offset
         self.offset = torch.zeros((self.num_envs, 7), device=self.device)
-        self.offset[:, 0] = 0.02  # x offset
+        self.offset[:, 0] = 0.0  # x offset
         self.offset[:, 2] = 0.2  # z offset
         self.offset[:, -1] = 1.0  # warp expects quaternion as (x, y, z, w)
 
         # pick object offset
         self.pick_offset = torch.zeros((self.num_envs, 7), device=self.device)
-        self.pick_offset[:, 0] = 0.02  # x offset
-        self.pick_offset[:, 2] = 0.1  # z offset
+        self.pick_offset[:, 0] = 0.0  # x offset
+        self.pick_offset[:, 1] = 0.0  # y offset
+        self.pick_offset[:, 2] = -0.06  # z offset
         self.pick_offset[:, -1] = 1.0  # warp expects quaternion as (x, y, z, w)
         
 
@@ -287,6 +288,11 @@ def main():
     # reset environment at start
     env.reset()
 
+    generated_poses = np.load("/home/matthew/Desktop/grasper_output/grasp_poses.npy")
+    generated_orientations = np.load("/home/matthew/Desktop/grasper_output/grasp_orientations.npy")
+
+    # generated_poses[:, 2] -= 0.06
+
     # create action buffers (position + quaternion)
     actions = torch.zeros(env.unwrapped.action_space.shape, device=env.unwrapped.device)
     actions[:, 3] = 1.0
@@ -305,7 +311,9 @@ def main():
     pick_sm = PickAndLiftSm(
         env_cfg.sim.dt * env_cfg.decimation, env.unwrapped.num_envs, env.unwrapped.device, position_threshold=0.01
     )
-    successes = 0
+    part_lifted = [False] * env.unwrapped.num_envs
+    success_lifts = []
+
     while simulation_app.is_running():
         # run everything in inference mode
         with torch.inference_mode():
@@ -323,10 +331,39 @@ def main():
             object_position = object_data.root_pos_w - env.unwrapped.scene.env_origins
             object_pos_w = object_data.root_pos_w[:, :3]
             object_rot_w = object_data.root_quat_w
+
+
             # -- grasping frame
             grasp_data = env.unwrapped.scene["grasp_frame"].data
             grasp_position = grasp_data.target_pos_w[..., 0, :].clone() - env.unwrapped.scene.env_origins
             grasp_orientation = grasp_data.target_quat_w[..., 0, :].clone()
+
+            for i in range(env.unwrapped.num_envs):
+                old_grasp = grasp_position[i, 0:3].cpu().numpy()
+                new_grasp = generated_poses[i] + old_grasp
+                grasp_position[i, 0:3] = torch.Tensor(new_grasp)
+
+                old_rotation = grasp_orientation[i, :].cpu().numpy()
+                new_rotation = generated_orientations[i]
+                # grasp_orientation[i, :] = torch.Tensor(new_rotation)
+
+
+                part_z = object_data.root_pos_w[i][2].cpu().numpy()
+
+
+                if part_z >= 0.3 and not part_lifted[i]:
+                    part_lifted[i] = True
+                    success_lifts.append(i)
+                # print(f"Object position: {object_position[i].cpu().numpy()}")
+            
+            
+            
+            
+
+
+            # print(f"Old grasp: {old_grasp} New grasp: {new_grasp}")
+            # print(f"Grasp rotation (quat): {grasp_orientation[0].cpu().numpy()}")
+
             # print(f"grasp_position: {grasp_position}")
             # np_obj_rot = object_rot_w.cpu().numpy()
             # np_obj_rot_degrees = quat_to_euler_angles(np_obj_rot[0], degrees=True)

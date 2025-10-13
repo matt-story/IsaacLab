@@ -386,6 +386,12 @@ def main():
             if trunc.any():
                 trunc_list = trunc.nonzero(as_tuple=False).squeeze(-1)
                 # print(f"Trunc envs {trunc_list.tolist()}")
+                highest_reward = np.amax(total_reward)
+                idx = np.argmax(total_reward)
+                best_grasp_pose =  generated_poses[idx]
+                np.save("/home/collwork/isaacsim_assets/success_grasp_poses.npy", best_grasp_pose)
+                np.save("/home/collwork/isaacsim_assets/success_grasp_orientations.npy", generated_orientations[idx])
+                print(f"Highest reward at {idx} with value {best_grasp_pose}")
                 pick_sm.reset_idx(env_ids=trunc_list)
             
             if dones.any():

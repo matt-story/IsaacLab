@@ -39,6 +39,8 @@ import math
 import torch
 import numpy as np
 from dataclasses import MISSING
+import os
+import pickle
 
 import isaaclab.sim as sim_utils
 # import isaaclab.envs.mdp as mdp
@@ -56,6 +58,7 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, DeformableObjectCfg, RigidObjectCfg
 from isaaclab.scene import InteractiveScene, InteractiveSceneCfg
+from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from isaaclab.sim import SimulationContext
 from isaaclab.sim.spawners.from_files.from_files_cfg import GroundPlaneCfg, UsdFileCfg
 from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransformerCfg
@@ -63,6 +66,17 @@ from isaaclab.sensors import CameraCfg
 
 
 assets_folder = "/home/matthew/Desktop/isaacsim_assets/"
+
+pose_folder = "/home/matthew/Desktop/grasper_output/extension_files/"
+generated_poses = np.load(pose_folder + "grasp_poses.npy")
+num_grasps = len(generated_poses)
+# part_info_file = "/home/matthew/Desktop/grasper_output/grasps.json"
+# if os.path.exists(part_info_file):
+#     filehandler = open(part_info_file, 'rb')
+#     parts_dict = pickle.load(filehandler)
+#     filehandler.close()
+# num_grasps = parts_dict["flashlight_main_shell_v2"]["num_grasps"]
+
 
 @configclass
 class FAIRSceneCfg(InteractiveSceneCfg):
@@ -80,11 +94,19 @@ class FAIRSceneCfg(InteractiveSceneCfg):
 
     grasp_frame: FrameTransformerCfg = MISSING
 
-    FAIR_stage = AssetBaseCfg(
-        prim_path="{ENV_REGEX_NS}/FAIR_stage",
-        init_state=AssetBaseCfg.InitialStateCfg(pos=[0.39309, 0.71435, -0.195], rot=[0.85717, 0, 0, 0.51504]),
-        spawn=UsdFileCfg(usd_path= assets_folder + "/grasping/picking_bin.usd"),
-    )
+    picking_bin = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/picking_bin",
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.39309, 0.71435, -0.185], rot=[0.85717, 0, 0, 0.51504]),
+        spawn=UsdFileCfg(usd_path= assets_folder + "/grasping/picking_bin.usd",
+        rigid_props=RigidBodyPropertiesCfg(
+                    solver_position_iteration_count=16,
+                    solver_velocity_iteration_count=1,
+                    max_angular_velocity=1000.0,
+                    max_linear_velocity=1000.0,
+                    max_depenetration_velocity=5.0,
+                    disable_gravity=False,
+                ),
+    ))
     
     # plane
     plane = AssetBaseCfg(
@@ -259,8 +281,9 @@ class CurriculumCfg:
 @configclass
 class FAIREnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the FAIR environment."""
-    generated_poses = np.load("/home/matthew/Desktop/grasper_output/grasp_poses.npy")
-    num_envs = len(generated_poses)
+    print(f"Number of grasps: {num_grasps}")
+    # num_envs: int = num_grasps
+    num_envs = 96
 
     # Scene settings
     scene: FAIRSceneCfg = FAIRSceneCfg(num_envs=num_envs, env_spacing=2.0)
@@ -280,7 +303,7 @@ class FAIREnvCfg(ManagerBasedRLEnvCfg):
         self.decimation = 2
         self.episode_length_s = 3.0
         # simulation settings
-        self.sim.dt = 0.01  # 100Hz
+        self.sim.dt = 0.03  # 1000Hz
         self.sim.render_interval = self.decimation
 
         self.sim.physx.bounce_threshold_velocity = 0.2

@@ -17,6 +17,7 @@ from __future__ import annotations
 import math
 import torch
 from typing import TYPE_CHECKING, Literal
+import numpy as np
 
 import carb
 import omni.physics.tensors.impl.api as physx
@@ -886,6 +887,16 @@ def reset_root_state_uniform(
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
     # get default root state
     root_states = asset.data.default_root_state[env_ids].clone()
+    config_file_folder = "/home/matthew/Desktop/grasper_output/extension_files/"
+    part_poses = np.load(config_file_folder + "part_pose.npy")
+    pose_range["x"] = (part_poses[0], part_poses[0])
+    pose_range["y"] = (part_poses[1], part_poses[1])
+    
+    part_orientations = np.load(config_file_folder + "part_orientation.npy")
+    # print(part_orientations)
+    pose_range["roll"] = (float(part_orientations[0]), float(part_orientations[0]))
+    pose_range["pitch"] = (float(part_orientations[1]), float(part_orientations[1]))
+    pose_range["yaw"] = (float(part_orientations[2]), float(part_orientations[2]))
 
     # poses
     range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z", "roll", "pitch", "yaw"]]

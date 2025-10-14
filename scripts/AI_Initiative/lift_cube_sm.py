@@ -46,6 +46,8 @@ from collections.abc import Sequence
 
 import warp as wp
 import numpy as np
+import pickle
+import os
 
 from isaaclab.assets.rigid_object.rigid_object_data import RigidObjectData
 from isaaclab.assets import AssetBase
@@ -282,16 +284,34 @@ def main():
     )
         # "FAIR-Pick-Part-UR10-IK-Abs-v0",
         # "FAIR-Pick-Part-Franka-IK-Abs-v0",
+
     task_name = args_cli.task_name
     # create environment
     env = gym.make(task_name, cfg=env_cfg)
     # reset environment at start
     env.reset()
 
-    generated_poses = np.load("/home/matthew/Desktop/grasper_output/grasp_poses.npy")
-    generated_orientations = np.load("/home/matthew/Desktop/grasper_output/grasp_orientations.npy")
+    pose_folder = "/home/matthew/Desktop/grasper_output/extension_files/"
+    part_pose = np.load(pose_folder + "part_pose.npy")
+    part_orientation = np.load(pose_folder + "part_orientation.npy")
+    generated_poses = np.load(pose_folder + "grasp_poses.npy")
+    generated_orientations = np.load(pose_folder + "grasp_orientations.npy")
 
-    # generated_poses[:, 2] -= 0.06
+    # part_info_file = "/home/matthew/Desktop/grasper_output/grasps.json"
+    # if os.path.exists(part_info_file):
+    #     filehandler = open(part_info_file, 'rb')
+    #     parts_dict = pickle.load(filehandler)
+    #     filehandler.close()
+
+    # part_name = "flashlight_main_shell_v2"
+    # part_info = parts_dict[part_name]
+    # generated_poses = part_info["grasp_poses"]
+    # generated_orientations = part_info["grasp_orientations"]
+
+    success_part_poses = []
+    success_part_orientations = []
+    success_grasp_poses = []
+    success_grasp_orientations = []
 
     # create action buffers (position + quaternion)
     actions = torch.zeros(env.unwrapped.action_space.shape, device=env.unwrapped.device)
@@ -313,6 +333,9 @@ def main():
     )
     part_lifted = [False] * env.unwrapped.num_envs
     success_lifts = []
+    total_reward = np.zeros(env.unwrapped.num_envs)
+
+    run_count = 0
 
     while simulation_app.is_running():
         # run everything in inference mode
@@ -338,33 +361,53 @@ def main():
             grasp_data = env.unwrapped.scene["grasp_frame"].data
             grasp_position = grasp_data.target_pos_w[..., 0, :].clone() - env.unwrapped.scene.env_origins
             grasp_orientation = grasp_data.target_quat_w[..., 0, :].clone()
+            
+
+            generated_poses = np.load(pose_folder + "grasp_poses.npy")
+            generated_orientations = np.load(pose_folder + "grasp_orientations.npy")
+
+            if run_count == 0:
+                part_start_pose = object_position[0].cpu().numpy()
+                part_pose_rounded = np.round(part_start_pose, 3)
+                part_start_rot = object_rot_w[0].cpu().numpy()
+                part_rot_rounded = np.round(part_start_rot, 3)
+                # print(f"Part start pos: {part_start_pose}")
+                # print(f"Part start rot: {part_start_rot}")
+            run_count += 1
+
+            
 
             for i in range(env.unwrapped.num_envs):
-                old_grasp = grasp_position[i, 0:3].cpu().numpy()
-                new_grasp = generated_poses[i] + old_grasp
-                grasp_position[i, 0:3] = torch.Tensor(new_grasp)
+                if i < len(generated_poses):
+                    old_grasp = grasp_position[i, 0:3].cpu().numpy()
+                    new_grasp = generated_poses[i] + old_grasp
+                    grasp_position[i, 0:3] = torch.Tensor(new_grasp)
 
-                old_rotation = grasp_orientation[i, :].cpu().numpy()
-                new_rotation = generated_orientations[i]
-                # grasp_orientation[i, :] = torch.Tensor(new_rotation)
-
-
-                part_z = object_data.root_pos_w[i][2].cpu().numpy()
+                    old_rotation = grasp_orientation[i, :].cpu().numpy()
+                    new_rotation = generated_orientations[i]
+                    # grasp_orientation[i, :] = torch.Tensor(new_rotation)
 
 
-                if part_z >= 0.3 and not part_lifted[i]:
-                    part_lifted[i] = True
-                    success_lifts.append(i)
-                # print(f"Object position: {object_position[i].cpu().numpy()}")
+                    part_z = object_data.root_pos_w[i][2].cpu().numpy()
+
+
+                    if part_z >= 0.3 and not part_lifted[i]:
+                        part_lifted[i] = True
+                        success_lifts.append(i)
+                    # print(f"Object position: {object_position[i].cpu().numpy()}")
+                    
+                    total_reward[i] += rew[i].item()
+                
+                else:
+                    old_grasp = grasp_position[i, 0:3].cpu().numpy()
+                    old_grasp[2] += 0.3
+                    grasp_position[i, 0:3] = torch.Tensor(old_grasp)
 
 
             # print(f"Env 0 Obs part pos: {obs['policy'][2]}")
-            print(f"Env 0 Reward: {rew[3].item()}")
+            # print(f"Env 0 Reward: {rew[3].item()}")
+            
 
-
-
-            # print(f"Old grasp: {old_grasp} New grasp: {new_grasp}")
-            # print(f"Grasp rotation (quat): {grasp_orientation[0].cpu().numpy()}")
 
             # print(f"grasp_position: {grasp_position}")
             # np_obj_rot = object_rot_w.cpu().numpy()
@@ -378,7 +421,7 @@ def main():
             # advance state machine
             actions = pick_sm.compute(
                 torch.cat([tcp_rest_position, tcp_rest_orientation], dim=-1),
-                torch.cat([grasp_position, grasp_orientation], dim=-1),         # TODO Change to object orientation
+                torch.cat([grasp_position, grasp_orientation], dim=-1),         
                 torch.cat([desired_position, desired_orientation], dim=-1),
             )
             
@@ -386,13 +429,33 @@ def main():
             if trunc.any():
                 trunc_list = trunc.nonzero(as_tuple=False).squeeze(-1)
                 # print(f"Trunc envs {trunc_list.tolist()}")
+                
                 highest_reward = np.amax(total_reward)
                 idx = np.argmax(total_reward)
-                best_grasp_pose =  generated_poses[idx]
-                np.save("/home/collwork/isaacsim_assets/success_grasp_poses.npy", best_grasp_pose)
-                np.save("/home/collwork/isaacsim_assets/success_grasp_orientations.npy", generated_orientations[idx])
-                print(f"Highest reward at {idx} with value {best_grasp_pose}")
-                pick_sm.reset_idx(env_ids=trunc_list)
+                if idx <= len(generated_poses) - 1:
+                    best_grasp_pose =  generated_poses[idx]
+                    
+                    best_grasp_orientation = generated_orientations[idx]
+                    
+                    if highest_reward > 8:
+                        np.save(f"{pose_folder}success_grasp_poses.npy", best_grasp_pose)
+                        np.save(f"{pose_folder}success_grasp_orientations.npy", generated_orientations[idx])
+                        np.save(f"{pose_folder}check_part_pose.npy", part_pose_rounded)
+                        np.save(f"{pose_folder}check_part_orientation.npy", part_rot_rounded)
+                        print(f"Saved successful grasp pose and orientation for part at {part_pose_rounded}")
+                        print(f"Highest reward at {idx} with value {highest_reward}")
+                    else:
+                        print(f"No successful grasps found. Highest reward at {idx} with value {highest_reward}")
+                    total_reward[trunc_list.cpu().numpy()] = 0.0
+                    pick_sm.reset_idx(env_ids=trunc_list)
+                    run_count = 0
+                
+
+                part_output_file = "/home/matthew/Desktop/grasper_output/success_grasps.json"
+                # if os.path.exists(part_output_file):
+                #     filehandler = open(part_output_file, 'rb')
+                #     success_dict = pickle.load(filehandler)
+                #     filehandler.close()
             
             if dones.any():
                 done_list = dones.nonzero(as_tuple=False).squeeze(-1)
@@ -402,6 +465,7 @@ def main():
 
     # close the environment
     env.close()
+    # env.reset()
 
 
 if __name__ == "__main__":

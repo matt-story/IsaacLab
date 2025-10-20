@@ -11,7 +11,7 @@ It uses the `warp` library to run the state machine in parallel on the GPU.
 
 .. code-block:: bash
 
-    ./isaaclab.sh -p scripts/AI_Initiative/lift_cube_sm.py --num_envs 32
+    ./isaaclab.sh -p scripts/AI_Initiative/AKS_lift_part_RL.py
 
 """
 

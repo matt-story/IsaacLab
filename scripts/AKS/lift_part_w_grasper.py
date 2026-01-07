@@ -11,7 +11,7 @@ It uses the `warp` library to run the state machine in parallel on the GPU.
 
 .. code-block:: bash
 
-    ./isaaclab.sh -p scripts/AKS/lift_cube_sm.py
+    ./isaaclab.sh -p scripts/AKS/lift_part_w_grasper.py
 
 """
 
@@ -56,6 +56,9 @@ from isaaclab_tasks.manager_based.manipulation.lift.lift_env_cfg import LiftEnvC
 from isaaclab_tasks.manager_based.FAIR.fair_env_cfg import FAIREnvCfg
 from isaaclab_tasks.utils.parse_cfg import parse_env_cfg
 from isaaclab.utils.math import subtract_frame_transforms
+from isaacsim.core.utils.numpy.rotations import quats_to_euler_angles
+from isaacsim.core.utils.rotations import gf_quat_to_np_array
+from isaacsim.core.utils.math import radians_to_degrees
 
 from isaacsim.core.utils.rotations import euler_angles_to_quat, quat_to_euler_angles
 
@@ -180,6 +183,69 @@ def infer_state_machine(
     # increment wait time
     sm_wait_time[tid] = sm_wait_time[tid] + dt[tid]
 
+def grasper_setup():
+    '''Grasper setup'''
+    _grasping_manager = GraspingManager()
+
+    config_folder = "/home/matthew/IsaacLab/scripts/AKS/gripper_configs/"
+    config_file = f"{config_folder}Robotiq_2F_85_grasper_config.yaml"
+
+    load_status = _grasping_manager.load_config(config_file)
+    # print(f"Config load status: {load_status}")
+
+    if not _grasping_manager.get_object_prim_path():
+        print("Warning: Object to grasp is not set (missing in config and argument). Aborting.")
+
+    # else:
+    #     print(f"Object to grasp: {_grasping_manager.get_object_prim_path()}")
+
+    if not _grasping_manager.gripper_path:
+        print("Warning: Gripper path is not set (missing in config and argument). Aborting.")
+
+    # else:
+    #     print(f"Gripper path: {_grasping_manager.gripper_path}")
+
+    # If there are already grasp poses in the configuration, don't generate new ones
+    if _grasping_manager.grasp_locations:
+        print(
+            f"Found {len(_grasping_manager.grasp_locations)} grasp poses in the configuration file. No new poses will be generated."
+        )
+    else:
+        print("No grasp poses found in configuration, generating new ones...")
+
+    # Determine Sampler Configuration
+    if not (_grasping_manager.sampler_config and _grasping_manager.sampler_config.get("sampler_type")):
+        if sampler_config:
+            _grasping_manager.sampler_config = sampler_config.copy()
+        else:
+            print(
+                "Warning: Sampler configuration is missing or invalid (not in config file and not provided as argument). Aborting pose generation."
+            )
+    
+    return _grasping_manager
+
+def grasp_filter(grasp_manager):
+    _grasp_poses = grasp_manager.grasp_locations
+    _grasp_orientations = grasp_manager.grasp_orientations
+
+    grasp_no = len(_grasp_poses)
+    
+    filtered_grasp_poses = []
+    filtered_grasp_orientations = []
+
+    for i in range(grasp_no):
+        grasp_pose = np.array(_grasp_poses[i])
+
+        if grasp_pose[2] > 0.1:
+            grasp_orientation = gf_quat_to_np_array(_grasp_orientations[i])
+            grasp_orientation_euler = quats_to_euler_angles(grasp_orientation)
+            grasp_orientation_degrees = radians_to_degrees(grasp_orientation_euler)
+
+            filtered_grasp_poses.append(grasp_pose)
+            filtered_grasp_orientations.append(_grasp_orientations[i])
+    
+    return filtered_grasp_poses, filtered_grasp_orientations
+
 class PickAndLiftSm:
     """A simple state machine in a robot's task space to pick and lift an object.
 
@@ -227,7 +293,7 @@ class PickAndLiftSm:
         self.pick_offset = torch.zeros((self.num_envs, 7), device=self.device)
         self.pick_offset[:, 0] = 0.0  # x offset
         self.pick_offset[:, 1] = 0.0  # y offset
-        self.pick_offset[:, 2] = 0.10  # z offset
+        self.pick_offset[:, 2] = 0.095  # z offset
         self.pick_offset[:, -1] = 1.0  # warp expects quaternion as (x, y, z, w)
         
 
@@ -238,6 +304,8 @@ class PickAndLiftSm:
         self.des_ee_pose_wp = wp.from_torch(self.des_ee_pose, wp.transform)
         self.des_gripper_state_wp = wp.from_torch(self.des_gripper_state, wp.float32)
         self.offset_wp = wp.from_torch(self.offset, wp.transform)
+
+        
 
     def reset_idx(self, env_ids: Sequence[int] = None):
         """Reset the state machine."""
@@ -320,6 +388,20 @@ def main():
         env_cfg.sim.dt * env_cfg.decimation, env.unwrapped.num_envs, env.unwrapped.device, position_threshold=0.01
     )
 
+    counter = 0
+    grasper_manager = grasper_setup()
+    
+    # Generate the grasp poses
+    success_generation = grasper_manager.generate_grasp_poses()
+    if not success_generation or not grasper_manager.grasp_locations:
+        print("Failed to generate grasp poses or no poses were generated.")
+    else:
+        print(f"Generated {len(grasper_manager.grasp_locations)} new grasp poses.")
+
+    grasp_poses, grasp_orientations = grasp_filter(grasper_manager)
+
+    print(f"Number of grasps after filter: {len(grasp_poses)}")
+    grasper_manager.clear_grasp_poses()
 
     while simulation_app.is_running():
         # run everything in inference mode
@@ -339,14 +421,15 @@ def main():
             object_position = object_data.root_pos_w - env.unwrapped.scene.env_origins
             object_pos_w = object_data.root_pos_w[:, :3]
             object_rot_w = object_data.root_quat_w
-
-
             # -- grasping frame
             grasp_data = env.unwrapped.scene["grasp_frame"].data
             grasp_position = grasp_data.target_pos_w[..., 0, :].clone() - env.unwrapped.scene.env_origins
             grasp_orientation = grasp_data.target_quat_w[..., 0, :].clone()
-            
 
+            if counter == 0:               
+                desired_orientation = grasp_data.target_quat_w[..., 0, :].clone()
+                # print(f"Desired orientation set to: {quat_to_euler_angles(desired_orientation[0].cpu().numpy())}")
+                counter += 1
            
             _, object_rot_b = subtract_frame_transforms(robot_data.root_pos_w, robot_data.root_quat_w, object_pos_w, object_rot_w)
             # -- target object frame
@@ -371,11 +454,39 @@ def main():
                 #     filehandler = open(part_output_file, 'rb')
                 #     success_dict = pickle.load(filehandler)
                 #     filehandler.close()
+                
+                counter = 0
+
+                # Generate the grasp poses
+                success_generation = grasper_manager.generate_grasp_poses()
+                if not success_generation or not grasper_manager.grasp_locations:
+                    print("Failed to generate grasp poses or no poses were generated.")
+                else:
+                    print(f"Generated {len(grasper_manager.grasp_locations)} new grasp poses.")
+
+                grasp_poses, grasp_orientations = grasp_filter(grasper_manager)
+
+                print(f"Number of grasps after filter: {len(grasp_poses)}")
+                grasper_manager.clear_grasp_poses()
             
             if dones.any():
                 done_list = dones.nonzero(as_tuple=False).squeeze(-1)
                 # print(f"Resetting envs {done_list.tolist()}")
                 pick_sm.reset_idx(env_ids=done_list)
+                
+                counter = 0
+                
+                # Generate the grasp poses
+                success_generation = grasper_manager.generate_grasp_poses()
+                if not success_generation or not grasper_manager.grasp_locations:
+                    print("Failed to generate grasp poses or no poses were generated.")
+                else:
+                    print(f"Generated {len(grasper_manager.grasp_locations)} new grasp poses.")
+
+                grasp_poses, grasp_orientations = grasp_filter(grasper_manager)
+
+                print(f"Number of grasps after filter: {len(grasp_poses)}")
+                grasper_manager.clear_grasp_poses()
 
 
     # close the environment

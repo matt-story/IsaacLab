@@ -24,7 +24,7 @@ from isaacsim.core.utils.rotations import euler_angles_to_quat
 from isaaclab.markers.config import FRAME_MARKER_CFG # isort: skip
 from isaaclab_assets import FRANKA_PANDA_CFG, UR10e_gripper_CFG, UR10e_gripper_HIGH_PD_CFG  # isort: skip
 
-assets_folder = "/home/matthew/Desktop/isaacsim_assets/grasping/"
+assets_folder = "/home/matthew/Desktop/isaacsim_assets/grasping/parts/"
 
 @configclass
 class FrankaPickPartEnvCfg(FAIREnvCfg):
@@ -140,7 +140,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
             prim_path="{ENV_REGEX_NS}/Object",
             init_state=RigidObjectCfg.InitialStateCfg(pos=[0.0, 0.0, -0.161]),
             spawn=UsdFileCfg(
-                usd_path=assets_folder + "flashlight_main_shell_v2.usd",
+                usd_path=assets_folder + "flashlight_main_shell.usd",
                 # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
                 # scale=(0.001, 0.001, 0.001),
                 rigid_props=RigidBodyPropertiesCfg(
@@ -180,7 +180,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
 
 
         grasp_rotation = euler_angles_to_quat(np.array([0.0, np.pi/2, -np.pi/2]))
-        grasp_position = (0.0, -0.0, 0.0)
+        grasp_position = (0.0, 0.04, 0.0)
         
         self.scene.grasp_frame = FrameTransformerCfg(
             prim_path="{ENV_REGEX_NS}/Robot/gripper/Robotiq_2F_85_edit/Robotiq_2F_85/gripper_base_link",

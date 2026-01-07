@@ -12,7 +12,7 @@ PhysX. This helps perform parallelized computation of the inverse kinematics.
 .. code-block:: bash
 
     # Usage
-    ./isaaclab.sh -p scripts/AI_Initiative/16_run_diff_ik.py
+    ./isaaclab.sh -p scripts/AKS/16_run_diff_ik.py
 
 """
 
@@ -61,7 +61,7 @@ assets_folder = "/home/matthew/Desktop/isaacsim_assets/"
 
 @configclass
 class TableTopSceneCfg(InteractiveSceneCfg):
-    """Configuration for a cart-pole scene."""
+    """Configuration for AKS scene."""
 
     # ground plane
     ground = AssetBaseCfg(
@@ -75,10 +75,10 @@ class TableTopSceneCfg(InteractiveSceneCfg):
         prim_path="/World/Light", spawn=sim_utils.DomeLightCfg(intensity=3000.0, color=(0.75, 0.75, 0.75))
     )
 
-    FAIR_stage = AssetBaseCfg(
-        prim_path="{ENV_REGEX_NS}/FAIR_stage",
+    AKS_stage = AssetBaseCfg(
+        prim_path="{ENV_REGEX_NS}/AKS_stage",
         init_state=AssetBaseCfg.InitialStateCfg(pos=[0.0, 0.0, 0.0], rot=[1, 0, 0, 0]),
-        spawn=UsdFileCfg(usd_path= assets_folder + "FAIR_RL_stage.usd"),
+        spawn=UsdFileCfg(usd_path= assets_folder + "AKS_RL_stage.usd"),
     )
 
     # articulation

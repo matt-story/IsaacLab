@@ -96,8 +96,8 @@ class FAIRSceneCfg(InteractiveSceneCfg):
 
     picking_bin = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/picking_bin",
-        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.39309, 0.71435, -0.185], rot=[0.85717, 0, 0, 0.51504]),
-        spawn=UsdFileCfg(usd_path= assets_folder + "/grasping/picking_bin.usd",
+        init_state=RigidObjectCfg.InitialStateCfg(pos=[0.7, 0.0, -0.185]),
+        spawn=UsdFileCfg(usd_path= assets_folder + "/grasping/parts/picking_bin.usd",
         rigid_props=RigidBodyPropertiesCfg(
                     solver_position_iteration_count=16,
                     solver_velocity_iteration_count=1,
@@ -147,14 +147,14 @@ class FAIRSceneCfg(InteractiveSceneCfg):
 @configclass
 class CommandsCfg:
     """Command terms for the MDP."""
-
+    # Where the object should be moved to
     object_pose = mdp.UniformPoseCommandCfg(
         asset_name="robot",
         body_name=MISSING,  # will be set by agent env cfg line 134
         resampling_time_range=(5.0, 5.0),
         debug_vis=True,
         ranges=mdp.UniformPoseCommandCfg.Ranges(
-            pos_x=(0.35, 0.35), pos_y=(0.65, 0.65), pos_z=(0.3, 0.3), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0, 0)
+            pos_x=(0.7, 0.7), pos_y=(0.0, 0.0), pos_z=(0.3, 0.3), roll=(0.0, 0.0), pitch=(0.0, 0.0), yaw=(0, 0)
         ),
     )
 
@@ -198,11 +198,12 @@ class EventCfg:
     reset_all = EventTerm(func=mdp.reset_scene_to_default, mode="reset")
 
     reset_object_position = EventTerm(
-        func=mdp.reset_root_state_uniform_external_pose,
+        func=mdp.reset_root_state_uniform,
+        # func=mdp.reset_root_state_uniform_external_pose, # for using external generated poses
         # func=mdp.reset_root_state_with_random_orientation,
         mode="reset",
         params={
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0), "z": (0.0, 0.0), "yaw": (-0.0, 0.0)},
+            "pose_range": {"x": (0.7, 0.7), "y": (-0.0, 0.0), "z": (0.0, 0.0), "yaw": (-0.0, 0.0)},
             "velocity_range": {},
             "asset_cfg": SceneEntityCfg("object", body_names="Object"),
         },
@@ -283,7 +284,7 @@ class FAIREnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the FAIR environment."""
     print(f"Number of grasps: {num_grasps}")
     # num_envs: int = num_grasps
-    num_envs = 96
+    num_envs = 128
 
     # Scene settings
     scene: FAIRSceneCfg = FAIRSceneCfg(num_envs=num_envs, env_spacing=2.0)
@@ -303,7 +304,7 @@ class FAIREnvCfg(ManagerBasedRLEnvCfg):
         self.decimation = 2
         self.episode_length_s = 3.0
         # simulation settings
-        self.sim.dt = 0.03  # 1000Hz
+        self.sim.dt = 0.0167  # 1000Hz
         self.sim.render_interval = self.decimation
 
         self.sim.physx.bounce_threshold_velocity = 0.2

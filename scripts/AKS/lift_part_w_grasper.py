@@ -410,6 +410,7 @@ def main():
     total_reward = np.zeros(env.unwrapped.num_envs)
 
     to_reset_list = []
+    reward_list = []
 
 
     while simulation_app.is_running():
@@ -480,6 +481,7 @@ def main():
                 for i in trunc_list:
                     if i not in to_reset_list:
                         to_reset_list.append(i)
+                        reward_list.append([i, rew[i].item()])
             
             if dones.any():
             #     done_count += 1
@@ -489,28 +491,37 @@ def main():
                 # print(f"Envs done: {done_list}") 
                 for i in done_list:
                     if i not in to_reset_list:
-                        to_reset_list.append(i)   
+                        to_reset_list.append(i)
+                        reward_list.append([i, rew[i].item()])   
             #         # print(f"Resetting envs {done_list.tolist()}")
                 # pick_sm.reset_idx(env_ids=done_list)
 
             
             if len(to_reset_list) == env.unwrapped.num_envs:
                 print(f"Total to reset: {len(to_reset_list)}/{env.unwrapped.num_envs}")
+                # rewards_sorted = sorted(reward_list, key=lambda x: x[0])
+                reward_list.sort(key=lambda x: x[1], reverse=True)
+                
+                print(f"Rewards: {reward_list[:5]}")
+
+                total_reward = np.zeros(env.unwrapped.num_envs)
+
                 pick_sm.reset_idx(env_ids=to_reset_list)
                 to_reset_list = []
+                reward_list = []
 
                 # Generate the grasp poses
-                success_generation = grasper_manager.generate_grasp_poses()
-                if not success_generation or not grasper_manager.grasp_locations:
-                    print("Failed to generate grasp poses or no poses were generated.")
-                else:
-                    print(f"Generated {len(grasper_manager.grasp_locations)} new grasp poses.")
+                # success_generation = grasper_manager.generate_grasp_poses()
+                # if not success_generation or not grasper_manager.grasp_locations:
+                #     print("Failed to generate grasp poses or no poses were generated.")
+                # else:
+                #     print(f"Generated {len(grasper_manager.grasp_locations)} new grasp poses.")
 
-                grasp_poses, grasp_orientations = grasp_filter(grasper_manager)
-                grasp_number = len(grasp_poses)
-                print(f"Number of grasps after filter: {grasp_number}")
+                # grasp_poses, grasp_orientations = grasp_filter(grasper_manager)
+                # grasp_number = len(grasp_poses)
+                # print(f"Number of grasps after filter: {grasp_number}")
 
-                grasper_manager.clear_grasp_poses()
+                # grasper_manager.clear_grasp_poses()
                 # else:
                 #     # print(f" Done count: {done_count}/{len(grasp_poses)}")
                 #     done_list = dones.cpu().numpy()

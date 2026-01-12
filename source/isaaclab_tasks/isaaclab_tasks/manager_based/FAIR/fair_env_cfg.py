@@ -260,7 +260,7 @@ class TerminationsCfg:
         func=mdp.root_height_below_minimum, params={"minimum_height": -0.2, "asset_cfg": SceneEntityCfg("object")}
     )
 
-    success = DoneTerm(func=mdp.object_reached_goal, params={"threshold": 0.01})
+    # success = DoneTerm(func=mdp.object_reached_goal, params={"threshold": 0.01})
 
 
 @configclass

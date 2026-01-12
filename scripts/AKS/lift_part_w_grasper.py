@@ -293,7 +293,7 @@ class PickAndLiftSm:
         self.pick_offset = torch.zeros((self.num_envs, 7), device=self.device)
         self.pick_offset[:, 0] = 0.0  # x offset
         self.pick_offset[:, 1] = 0.0  # y offset
-        self.pick_offset[:, 2] = 0.095  # z offset
+        self.pick_offset[:, 2] = -0.06  # z offset
         self.pick_offset[:, -1] = 1.0  # warp expects quaternion as (x, y, z, w)
         
 
@@ -400,8 +400,17 @@ def main():
 
     grasp_poses, grasp_orientations = grasp_filter(grasper_manager)
 
-    print(f"Number of grasps after filter: {len(grasp_poses)}")
+    grasp_number = len(grasp_poses)
+    print(f"Number of grasps after filter: {grasp_number}")
+    # print(f"Grasp poses: {grasp_poses[0]}")
     grasper_manager.clear_grasp_poses()
+
+    part_lifted = [False] * env.unwrapped.num_envs
+    success_lifts = []
+    total_reward = np.zeros(env.unwrapped.num_envs)
+
+    to_reset_list = []
+
 
     while simulation_app.is_running():
         # run everything in inference mode
@@ -421,11 +430,28 @@ def main():
             object_position = object_data.root_pos_w - env.unwrapped.scene.env_origins
             object_pos_w = object_data.root_pos_w[:, :3]
             object_rot_w = object_data.root_quat_w
-            # -- grasping frame
+            # -- default grasping frame
             grasp_data = env.unwrapped.scene["grasp_frame"].data
             grasp_position = grasp_data.target_pos_w[..., 0, :].clone() - env.unwrapped.scene.env_origins
             grasp_orientation = grasp_data.target_quat_w[..., 0, :].clone()
 
+            # Apply grasps generated from grasper manager
+            for i in range(env.unwrapped.num_envs):
+                if i < grasp_number:
+                    old_grasp = grasp_position[i, 0:3].cpu().numpy()
+                    new_grasp = grasp_poses[i] + old_grasp
+                    grasp_position[i, 0:3] = torch.Tensor(new_grasp)
+
+                    old_rotation = grasp_orientation[i, :].cpu().numpy()
+                    new_rotation = grasp_orientations[i]
+                    # grasp_orientation[i, :] = torch.Tensor(new_rotation)
+                
+                else:
+                    old_grasp = grasp_position[i, 0:3].cpu().numpy()
+                    old_grasp[2] += 0.3
+                    grasp_position[i, 0:3] = torch.Tensor(old_grasp)
+
+            # Stops the robot from rotating during the lift
             if counter == 0:               
                 desired_orientation = grasp_data.target_quat_w[..., 0, :].clone()
                 # print(f"Desired orientation set to: {quat_to_euler_angles(desired_orientation[0].cpu().numpy())}")
@@ -445,37 +471,34 @@ def main():
             
             # reset state machine
             if trunc.any():
-                trunc_list = trunc.nonzero(as_tuple=False).squeeze(-1)
-
-                pick_sm.reset_idx(env_ids=trunc_list)                
-
-                part_output_file = "/home/matthew/Desktop/grasper_output/success_grasps.json"
-                # if os.path.exists(part_output_file):
-                #     filehandler = open(part_output_file, 'rb')
-                #     success_dict = pickle.load(filehandler)
-                #     filehandler.close()
-                
-                counter = 0
-
-                # Generate the grasp poses
-                success_generation = grasper_manager.generate_grasp_poses()
-                if not success_generation or not grasper_manager.grasp_locations:
-                    print("Failed to generate grasp poses or no poses were generated.")
-                else:
-                    print(f"Generated {len(grasper_manager.grasp_locations)} new grasp poses.")
-
-                grasp_poses, grasp_orientations = grasp_filter(grasper_manager)
-
-                print(f"Number of grasps after filter: {len(grasp_poses)}")
-                grasper_manager.clear_grasp_poses()
+                trunc_count = trunc.nonzero(as_tuple=False).squeeze(-1)
+                trunc_list = trunc_count.tolist()
+                # print(f"Envs truncated: {trunc_list}")    
+            #         highest_reward = np.amax(total_reward)
+            #         idx = np.argmax(total_reward)
+            #         print(f"Highest reward at {idx} with value {highest_reward}")
+                for i in trunc_list:
+                    if i not in to_reset_list:
+                        to_reset_list.append(i)
             
             if dones.any():
-                done_list = dones.nonzero(as_tuple=False).squeeze(-1)
-                # print(f"Resetting envs {done_list.tolist()}")
-                pick_sm.reset_idx(env_ids=done_list)
-                
-                counter = 0
-                
+            #     done_count += 1
+            #     if done_count == len(grasp_poses):
+                done_count = dones.nonzero(as_tuple=False).squeeze(-1)
+                done_list = done_count.tolist()
+                # print(f"Envs done: {done_list}") 
+                for i in done_list:
+                    if i not in to_reset_list:
+                        to_reset_list.append(i)   
+            #         # print(f"Resetting envs {done_list.tolist()}")
+                # pick_sm.reset_idx(env_ids=done_list)
+
+            
+            if len(to_reset_list) == env.unwrapped.num_envs:
+                print(f"Total to reset: {len(to_reset_list)}/{env.unwrapped.num_envs}")
+                pick_sm.reset_idx(env_ids=to_reset_list)
+                to_reset_list = []
+
                 # Generate the grasp poses
                 success_generation = grasper_manager.generate_grasp_poses()
                 if not success_generation or not grasper_manager.grasp_locations:
@@ -484,10 +507,28 @@ def main():
                     print(f"Generated {len(grasper_manager.grasp_locations)} new grasp poses.")
 
                 grasp_poses, grasp_orientations = grasp_filter(grasper_manager)
+                grasp_number = len(grasp_poses)
+                print(f"Number of grasps after filter: {grasp_number}")
 
-                print(f"Number of grasps after filter: {len(grasp_poses)}")
                 grasper_manager.clear_grasp_poses()
+                # else:
+                #     # print(f" Done count: {done_count}/{len(grasp_poses)}")
+                #     done_list = dones.cpu().numpy()
+                #     print(done_list)
+            
+            # for i in range(env.unwrapped.num_envs):
+            #     if i < len(grasp_poses):
+            #         part_z = object_data.root_pos_w[i][2].cpu().numpy()
 
+
+            #         if part_z >= 0.3 and not part_lifted[i]:
+            #             part_lifted[i] = True
+            #             success_lifts.append(i) 
+
+            # done_list = dones.cpu().numpy()
+            # trunc_list = trunc.cpu().numpy()
+            
+            # print(f"Parts lifted: {success_lifts}")
 
     # close the environment
     env.close()

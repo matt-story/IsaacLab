@@ -9,7 +9,7 @@ scene, action, observation and event managers to create an environment.
 
 .. code-block:: bash
 
-    ./isaaclab.sh -p scripts/AI_Initiative/06_non_RL_base_env.py --num_envs 32
+    ./isaaclab.sh -p scripts/AKS/06_non_RL_base_env.py --num_envs 32
 
 """
 
@@ -65,11 +65,11 @@ from isaaclab.sensors.frame_transformer.frame_transformer_cfg import FrameTransf
 from isaaclab.sensors import CameraCfg
 
 
-assets_folder = "/home/matthew/Desktop/isaacsim_assets/"
+assets_folder = "/home/matthew/Desktop/AKS_Picking_Evaluation/"
 
-pose_folder = "/home/matthew/Desktop/grasper_output/extension_files/"
-generated_poses = np.load(pose_folder + "grasp_poses.npy")
-num_grasps = len(generated_poses)
+# pose_folder = "/home/matthew/Desktop/grasper_output/extension_files/"
+# generated_poses = np.load(pose_folder + "grasp_poses.npy")
+# num_grasps = len(generated_poses)
 # part_info_file = "/home/matthew/Desktop/grasper_output/grasps.json"
 # if os.path.exists(part_info_file):
 #     filehandler = open(part_info_file, 'rb')
@@ -97,7 +97,7 @@ class FAIRSceneCfg(InteractiveSceneCfg):
     picking_bin = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/picking_bin",
         init_state=RigidObjectCfg.InitialStateCfg(pos=[0.7, 0.0, -0.185]),
-        spawn=UsdFileCfg(usd_path= assets_folder + "/grasping/parts/picking_bin.usd",
+        spawn=UsdFileCfg(usd_path= assets_folder + "/picking_bin.usd",
         rigid_props=RigidBodyPropertiesCfg(
                     solver_position_iteration_count=16,
                     solver_velocity_iteration_count=1,
@@ -282,7 +282,7 @@ class CurriculumCfg:
 @configclass
 class FAIREnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the FAIR environment."""
-    print(f"Number of grasps: {num_grasps}")
+    # print(f"Number of grasps: {num_grasps}")
     # num_envs: int = num_grasps
     num_envs = 128
 

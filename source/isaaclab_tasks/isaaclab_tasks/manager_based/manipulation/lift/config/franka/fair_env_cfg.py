@@ -24,7 +24,7 @@ from isaacsim.core.utils.rotations import euler_angles_to_quat
 from isaaclab.markers.config import FRAME_MARKER_CFG # isort: skip
 from isaaclab_assets import FRANKA_PANDA_CFG, UR10e_gripper_CFG, UR10e_gripper_HIGH_PD_CFG  # isort: skip
 
-assets_folder = "/home/matthew/Desktop/isaacsim_assets/grasping/parts/"
+assets_folder = "/home/matthew/Desktop/AKS_Picking_Evaluation/parts/"
 
 @configclass
 class FrankaPickPartEnvCfg(FAIREnvCfg):

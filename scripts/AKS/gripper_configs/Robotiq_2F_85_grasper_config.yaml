@@ -15,9 +15,9 @@ sampler_config:
   grasp_align_axis: [0, 1, 0]
   gripper_approach_direction: [0, 0, 1]
   gripper_maximum_aperture: 0.08
-  gripper_standoff_fingertips: 0.14
+  gripper_standoff_fingertips: 0.17
   lateral_sigma: 0.0
-  num_candidates: 1000
+  num_candidates: 500
   num_orientations: 3
   orientation_sample_axis: [0, 1, 0]
   random_seed: -1

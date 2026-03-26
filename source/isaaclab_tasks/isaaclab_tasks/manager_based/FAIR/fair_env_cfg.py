@@ -97,7 +97,7 @@ class FAIRSceneCfg(InteractiveSceneCfg):
     picking_bin = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/picking_bin",
         init_state=RigidObjectCfg.InitialStateCfg(pos=[0.7, 0.0, -0.185]),
-        spawn=UsdFileCfg(usd_path= assets_folder + "/picking_bin.usd",
+        spawn=UsdFileCfg(usd_path= assets_folder + "grasping/parts/picking_bin.usd",
         rigid_props=RigidBodyPropertiesCfg(
                     solver_position_iteration_count=16,
                     solver_velocity_iteration_count=1,
@@ -284,7 +284,7 @@ class FAIREnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the FAIR environment."""
     # print(f"Number of grasps: {num_grasps}")
     # num_envs: int = num_grasps
-    num_envs = 128
+    num_envs = 1028
 
     # Scene settings
     scene: FAIRSceneCfg = FAIRSceneCfg(num_envs=num_envs, env_spacing=2.0)

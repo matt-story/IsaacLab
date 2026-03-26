@@ -54,7 +54,7 @@ class FrankaPickPartEnvCfg(FAIREnvCfg):
             prim_path="{ENV_REGEX_NS}/Object",
             init_state=RigidObjectCfg.InitialStateCfg(pos=[0.44, 0.0, 0.05]),
             spawn=UsdFileCfg(
-                usd_path=assets_folder + "flashlight_main_shell_v2.usd",
+                usd_path=assets_folder + "flashlight_main_shell.usd",
                 # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
                 # scale=(0.001, 0.001, 0.001),
                 rigid_props=RigidBodyPropertiesCfg(
@@ -140,7 +140,7 @@ class UR10PickPartEnvCfg(FAIREnvCfg):
             prim_path="{ENV_REGEX_NS}/Object",
             init_state=RigidObjectCfg.InitialStateCfg(pos=[0.0, 0.0, -0.161]),
             spawn=UsdFileCfg(
-                usd_path=assets_folder + "flashlight_main_shell.usd",
+                usd_path=assets_folder + "obj_000000.usd",
                 # usd_path=f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/blue_block.usd",
                 # scale=(0.001, 0.001, 0.001),
                 rigid_props=RigidBodyPropertiesCfg(
